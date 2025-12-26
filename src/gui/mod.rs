@@ -1,18 +1,28 @@
-/// ICED GUI Application Module
+/// ICED GUI Application Module with System Tray IPC
 mod profile_editor;
 pub mod styles;
 
 use iced::{
-    Element, Sandbox, Settings, Length, Alignment,
+    executor, Application, Command, Element, Settings, Length, Alignment, Theme,
     widget::{Container, Column, Row, Text, Button, Scrollable, Checkbox, TextInput, Space, Toggler},
+    Subscription,
 };
 use std::collections::{HashMap, HashSet};
+use std::sync::mpsc::TryRecvError;
+use std::time::{Duration, Instant};
 use crate::profile::Profile;
 use crate::common_apps::COMMON_APPS;
 use crate::config::get_data_directory;
 use crate::profile::{load_profiles, save_profiles};
 use crate::image_picker::{open_image_picker, validate_crosshair_image};
 use crate::process::{list_processes, kill_processes, ProcessInfo};
+use crate::ipc::{GuiChannels, GuiToTray, TrayToGui};
+
+// Global channel storage (needed for ICED Application pattern)
+use std::sync::Mutex;
+use once_cell::sync::Lazy;
+
+static GUI_CHANNELS: Lazy<Mutex<Option<GuiChannels>>> = Lazy::new(|| Mutex::new(None));
 
 #[derive(Debug, Clone)]
 pub enum Message {
@@ -38,6 +48,13 @@ pub enum Message {
     
     // Fan control
     FanSpeedMaxToggled(bool),
+    
+    // Tray IPC
+    TrayTick,
+    TrayMessage(TrayToGui),
+    
+    // Window
+    ExitRequested,
 }
 
 pub struct GameOptimizer {
@@ -67,6 +84,9 @@ pub struct GameOptimizer {
     
     // Active profile
     active_profile_name: Option<String>,
+    
+    // Exit flag
+    should_exit: bool,
 }
 
 impl GameOptimizer {
@@ -164,6 +184,9 @@ impl GameOptimizer {
                 
                 self.active_profile_name = Some(profile_name.clone());
                 
+                // Notify tray
+                self.send_to_tray(GuiToTray::ActiveProfileChanged(Some(profile_name.clone())));
+                
                 // Fan speed message
                 if fan_max {
                     status_parts.push("Fan: MAX".to_string());
@@ -182,12 +205,57 @@ impl GameOptimizer {
             self.status_message = "⚠️ No profile selected to activate".to_string();
         }
     }
+    
+    fn activate_profile_by_name(&mut self, name: &str) {
+        // Find profile index by name
+        if let Some(index) = self.profiles.iter().position(|p| p.name == name) {
+            self.selected_profile_index = Some(index);
+            self.load_profile_to_edit(index);
+            self.activate_current_profile();
+        } else {
+            self.status_message = format!("⚠️ Profile '{}' not found", name);
+        }
+    }
+    
+    fn deactivate_profile(&mut self) {
+        self.active_profile_name = None;
+        self.send_to_tray(GuiToTray::ActiveProfileChanged(None));
+        self.status_message = "Profile deactivated".to_string();
+    }
+    
+    fn send_to_tray(&self, msg: GuiToTray) {
+        if let Ok(guard) = GUI_CHANNELS.lock() {
+            if let Some(ref channels) = *guard {
+                let _ = channels.to_tray.send(msg);
+            }
+        }
+    }
+    
+    fn notify_profiles_updated(&self) {
+        self.send_to_tray(GuiToTray::ProfilesUpdated(self.profiles.clone()));
+    }
+    
+    fn check_tray_messages(&mut self) -> Option<TrayToGui> {
+        if let Ok(guard) = GUI_CHANNELS.lock() {
+            if let Some(ref channels) = *guard {
+                match channels.from_tray.try_recv() {
+                    Ok(msg) => return Some(msg),
+                    Err(TryRecvError::Empty) => {}
+                    Err(TryRecvError::Disconnected) => {}
+                }
+            }
+        }
+        None
+    }
 }
 
-impl Sandbox for GameOptimizer {
+impl Application for GameOptimizer {
+    type Executor = executor::Default;
+    type Flags = ();
     type Message = Message;
+    type Theme = Theme;
 
-    fn new() -> Self {
+    fn new(_flags: ()) -> (Self, Command<Message>) {
         let data_dir = get_data_directory().ok();
         let mut app = GameOptimizer {
             profiles: Vec::new(),
@@ -204,17 +272,37 @@ impl Sandbox for GameOptimizer {
             status_message: "Welcome to Gaming Optimizer".to_string(),
             data_dir,
             active_profile_name: None,
+            should_exit: false,
         };
         app.load_profiles_from_disk();
         app.refresh_running_processes();
-        app
+        
+        // Notify tray of initial profiles
+        app.notify_profiles_updated();
+        
+        (app, Command::none())
     }
 
     fn title(&self) -> String {
         String::from("Gaming Optimizer - Profile Manager")
     }
+    
+    fn subscription(&self) -> Subscription<Message> {
+        // Custom subscription using unfold to poll for tray messages
+        struct TrayPoller;
+        
+        iced::subscription::unfold(
+            std::any::TypeId::of::<TrayPoller>(),
+            (),
+            |_state| async {
+                // Wait a bit before checking again
+                tokio::time::sleep(Duration::from_millis(100)).await;
+                (Message::TrayTick, ())
+            },
+        )
+    }
 
-    fn update(&mut self, message: Message) {
+    fn update(&mut self, message: Message) -> Command<Message> {
         match message {
             Message::ProfileNameChanged(name) => {
                 self.edit_name = name;
@@ -233,7 +321,7 @@ impl Sandbox for GameOptimizer {
             Message::SaveProfile => {
                 if self.edit_name.trim().is_empty() {
                     self.status_message = "❌ Error: Profile name cannot be empty".to_string();
-                    return;
+                    return Command::none();
                 }
                 
                 let x_offset = self.edit_x_offset.parse().unwrap_or(0);
@@ -261,6 +349,7 @@ impl Sandbox for GameOptimizer {
                 }
                 
                 self.save_profiles_to_disk();
+                self.notify_profiles_updated();
             }
             
             Message::DeleteProfile => {
@@ -269,6 +358,7 @@ impl Sandbox for GameOptimizer {
                     self.profiles.remove(index);
                     self.clear_edit_form();
                     self.save_profiles_to_disk();
+                    self.notify_profiles_updated();
                     self.status_message = format!("🗑️ Deleted profile: {}", name);
                 }
             }
@@ -330,7 +420,45 @@ impl Sandbox for GameOptimizer {
                 self.edit_image_path = None;
                 self.status_message = "Cleared crosshair image".to_string();
             }
+            
+            Message::TrayTick => {
+                // Check for messages from tray
+                if let Some(tray_msg) = self.check_tray_messages() {
+                    return Command::perform(async move { tray_msg }, Message::TrayMessage);
+                }
+            }
+            
+            Message::TrayMessage(tray_msg) => {
+                match tray_msg {
+                    TrayToGui::ActivateProfile(name) => {
+                        self.activate_profile_by_name(&name);
+                    }
+                    TrayToGui::DeactivateProfile => {
+                        self.deactivate_profile();
+                    }
+                    TrayToGui::ToggleOverlay => {
+                        self.edit_overlay_enabled = !self.edit_overlay_enabled;
+                        self.status_message = format!("Overlay: {}", if self.edit_overlay_enabled { "ON" } else { "OFF" });
+                    }
+                    TrayToGui::OpenSettings => {
+                        self.status_message = "Settings opened from tray".to_string();
+                        // Window is already open, just bring focus (handled by OS)
+                    }
+                    TrayToGui::Exit => {
+                        self.should_exit = true;
+                        self.send_to_tray(GuiToTray::Shutdown);
+                        return iced::window::close(iced::window::Id::MAIN);
+                    }
+                }
+            }
+            
+            Message::ExitRequested => {
+                self.send_to_tray(GuiToTray::Shutdown);
+                return iced::window::close(iced::window::Id::MAIN);
+            }
         }
+        
+        Command::none()
     }
 
     fn view(&self) -> Element<Message> {
@@ -554,9 +682,9 @@ impl Sandbox for GameOptimizer {
                         .push(Space::new(Length::Fill, Length::Shrink))
                         .push(
                             if let Some(ref name) = self.active_profile_name {
-                                Text::new(format!("Active: {}", name)).size(14)
+                                Text::new(format!("🟢 Active: {} | 📌 Tray Running", name)).size(14)
                             } else {
-                                Text::new("No active profile").size(14)
+                                Text::new("No active profile | 📌 Tray Running").size(14)
                             }
                         )
                 )
@@ -648,7 +776,25 @@ impl GameOptimizer {
     }
 }
 
+/// Run GUI without tray integration (for testing)
 pub fn run() -> iced::Result {
+    GameOptimizer::run(Settings {
+        window: iced::window::Settings {
+            size: iced::Size::new(1000.0, 750.0),
+            min_size: Some(iced::Size::new(900.0, 650.0)),
+            ..Default::default()
+        },
+        ..Default::default()
+    })
+}
+
+/// Run GUI with tray IPC channels
+pub fn run_with_channels(channels: GuiChannels) -> iced::Result {
+    // Store channels in global state
+    if let Ok(mut guard) = GUI_CHANNELS.lock() {
+        *guard = Some(channels);
+    }
+    
     GameOptimizer::run(Settings {
         window: iced::window::Settings {
             size: iced::Size::new(1000.0, 750.0),

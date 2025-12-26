@@ -1365,6 +1365,7 @@ dependencies = [
  "directories",
  "iced",
  "image",
+ "once_cell",
  "parking_lot 0.12.5",
  "rfd",
  "serde",

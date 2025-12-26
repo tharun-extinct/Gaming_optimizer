@@ -1,5 +1,8 @@
 use crate::profile::Profile;
+use crate::ipc::{TrayChannels, GuiToTray, TrayToGui};
 use anyhow::{anyhow, Result};
+use std::collections::HashMap;
+use std::sync::mpsc::TryRecvError;
 use tray_icon::menu::{Menu, MenuEvent, MenuItem, PredefinedMenuItem, Submenu};
 use tray_icon::{TrayIcon, TrayIconBuilder};
 
@@ -11,6 +14,9 @@ pub struct TrayManager {
     overlay_toggle: MenuItem,
     settings_item: MenuItem,
     exit_item: MenuItem,
+    // Track profile menu items by their ID
+    profile_items: HashMap<tray_icon::menu::MenuId, String>,
+    none_item_id: Option<tray_icon::menu::MenuId>,
 }
 
 /// Events that can be triggered from the tray menu
@@ -40,7 +46,7 @@ impl TrayManager {
 
         // Profiles submenu
         let profile_submenu = Submenu::new("Profiles", true);
-        Self::populate_profile_submenu(&profile_submenu, profiles, active_profile)?;
+        let (profile_items, none_item_id) = Self::populate_profile_submenu(&profile_submenu, profiles, active_profile)?;
         menu.append(&profile_submenu)
             .map_err(|e| anyhow!("Failed to add profiles submenu: {}", e))?;
 
@@ -49,7 +55,7 @@ impl TrayManager {
             .map_err(|e| anyhow!("Failed to add separator: {}", e))?;
 
         // Overlay toggle (initially disabled)
-        let overlay_toggle = MenuItem::new("Overlay Visible", active_profile.is_some(), None);
+        let overlay_toggle = MenuItem::new("☐ Overlay Visible", active_profile.is_some(), None);
         menu.append(&overlay_toggle)
             .map_err(|e| anyhow!("Failed to add overlay toggle: {}", e))?;
 
@@ -58,7 +64,7 @@ impl TrayManager {
             .map_err(|e| anyhow!("Failed to add separator: {}", e))?;
 
         // Settings
-        let settings_item = MenuItem::new("⚙ Settings", true, None);
+        let settings_item = MenuItem::new("⚙ Open Settings", true, None);
         menu.append(&settings_item)
             .map_err(|e| anyhow!("Failed to add settings item: {}", e))?;
 
@@ -81,6 +87,8 @@ impl TrayManager {
             overlay_toggle,
             settings_item,
             exit_item,
+            profile_items,
+            none_item_id,
         })
     }
 
@@ -89,9 +97,9 @@ impl TrayManager {
         submenu: &Submenu,
         profiles: &[Profile],
         active_profile: Option<&str>,
-    ) -> Result<()> {
-        // Clear existing items
-        // Note: tray-icon doesn't have a clear method, so we create a new submenu each time
+    ) -> Result<(HashMap<tray_icon::menu::MenuId, String>, Option<tray_icon::menu::MenuId>)> {
+        let mut profile_items = HashMap::new();
+        let mut none_item_id = None;
 
         if profiles.is_empty() {
             let no_profiles = MenuItem::new("(No profiles - open Settings)", false, None);
@@ -108,6 +116,7 @@ impl TrayManager {
                     profile.name.clone()
                 };
                 let item = MenuItem::new(label, true, None);
+                profile_items.insert(item.id().clone(), profile.name.clone());
                 submenu
                     .append(&item)
                     .map_err(|e| anyhow!("Failed to add profile item: {}", e))?;
@@ -120,23 +129,24 @@ impl TrayManager {
 
             // Add "(None)" option to deactivate profile
             let none_item = MenuItem::new("(None)", true, None);
+            none_item_id = Some(none_item.id().clone());
             submenu
                 .append(&none_item)
                 .map_err(|e| anyhow!("Failed to add none item: {}", e))?;
         }
 
-        Ok(())
+        Ok((profile_items, none_item_id))
     }
 
     /// Update the tray menu with new profiles list
     pub fn update_profiles(&mut self, profiles: &[Profile], active_profile: Option<&str>) -> Result<()> {
         // Create new profiles submenu
         let new_submenu = Submenu::new("Profiles", true);
-        Self::populate_profile_submenu(&new_submenu, profiles, active_profile)?;
+        let (profile_items, none_item_id) = Self::populate_profile_submenu(&new_submenu, profiles, active_profile)?;
 
-        // Replace old submenu in menu
-        // Note: This is a limitation - tray-icon doesn't support dynamic menu updates well
-        // In a real implementation, you might need to rebuild the entire menu
+        // Update stored profile items
+        self.profile_items = profile_items;
+        self.none_item_id = none_item_id;
         self.profile_submenu = new_submenu;
 
         Ok(())
@@ -171,62 +181,107 @@ impl TrayManager {
         Ok(())
     }
 
-    /// Poll for menu events and convert to TrayEvent
-    pub fn poll_events(&self, profiles: &[Profile]) -> Option<TrayEvent> {
+    /// Poll for menu events and convert to TrayToGui messages
+    pub fn poll_events(&self) -> Option<TrayToGui> {
         if let Ok(event) = MenuEvent::receiver().try_recv() {
-            return self.handle_menu_event(event, profiles);
+            return self.handle_menu_event(event);
         }
         None
     }
 
-    /// Handle a menu event and convert to TrayEvent
-    fn handle_menu_event(&self, event: MenuEvent, profiles: &[Profile]) -> Option<TrayEvent> {
+    /// Handle a menu event and convert to TrayToGui
+    fn handle_menu_event(&self, event: MenuEvent) -> Option<TrayToGui> {
         let event_id = event.id;
 
         // Check if it's a profile item
-        for profile in profiles {
-            // This is a simplified check - in reality, we'd need to store item IDs
-            // For now, we'll use the text matching approach
-            if self.is_profile_item(&event_id, &profile.name) {
-                return Some(TrayEvent::ProfileSelected(profile.name.clone()));
-            }
+        if let Some(profile_name) = self.profile_items.get(&event_id) {
+            return Some(TrayToGui::ActivateProfile(profile_name.clone()));
         }
 
         // Check for "(None)" deactivation
-        if self.is_none_item(&event_id) {
-            return Some(TrayEvent::ProfileDeactivated);
+        if let Some(ref none_id) = self.none_item_id {
+            if &event_id == none_id {
+                return Some(TrayToGui::DeactivateProfile);
+            }
         }
 
         // Check overlay toggle
         if event_id == self.overlay_toggle.id() {
-            return Some(TrayEvent::OverlayToggled);
+            return Some(TrayToGui::ToggleOverlay);
         }
 
         // Check settings
         if event_id == self.settings_item.id() {
-            return Some(TrayEvent::OpenSettings);
+            return Some(TrayToGui::OpenSettings);
         }
 
         // Check exit
         if event_id == self.exit_item.id() {
-            return Some(TrayEvent::Exit);
+            return Some(TrayToGui::Exit);
         }
 
         None
     }
+}
 
-    /// Check if event ID corresponds to a profile item
-    fn is_profile_item(&self, _event_id: &tray_icon::menu::MenuId, _profile_name: &str) -> bool {
-        // This is a placeholder - proper implementation would track menu item IDs
-        // For MVP, this will be handled differently in main.rs
-        false
-    }
-
-    /// Check if event ID corresponds to the "(None)" item
-    fn is_none_item(&self, _event_id: &tray_icon::menu::MenuId) -> bool {
-        // This is a placeholder - proper implementation would track menu item IDs
-        false
-    }
+/// Run the tray in its own thread, communicating via channels
+pub fn run_tray_thread(channels: TrayChannels, initial_profiles: Vec<Profile>, active_profile: Option<String>) {
+    std::thread::spawn(move || {
+        // Create the tray manager
+        let mut tray = match TrayManager::new(&initial_profiles, active_profile.as_deref()) {
+            Ok(t) => t,
+            Err(e) => {
+                eprintln!("Failed to create tray: {}", e);
+                return;
+            }
+        };
+        
+        let mut profiles = initial_profiles;
+        let mut current_active = active_profile;
+        
+        loop {
+            // Check for messages from GUI
+            match channels.from_gui.try_recv() {
+                Ok(msg) => match msg {
+                    GuiToTray::ProfilesUpdated(new_profiles) => {
+                        profiles = new_profiles;
+                        let _ = tray.update_profiles(&profiles, current_active.as_deref());
+                    }
+                    GuiToTray::ActiveProfileChanged(new_active) => {
+                        current_active = new_active;
+                        let _ = tray.set_active_profile(current_active.as_deref());
+                    }
+                    GuiToTray::OverlayVisibilityChanged(visible) => {
+                        let _ = tray.set_overlay_visible(visible, current_active.is_some());
+                    }
+                    GuiToTray::Shutdown => {
+                        break;
+                    }
+                },
+                Err(TryRecvError::Empty) => {}
+                Err(TryRecvError::Disconnected) => {
+                    // GUI has closed, exit tray thread
+                    break;
+                }
+            }
+            
+            // Poll for tray menu events
+            if let Some(event) = tray.poll_events() {
+                if let Err(_) = channels.to_gui.send(event.clone()) {
+                    // GUI receiver disconnected
+                    break;
+                }
+                
+                // Exit immediately if exit requested
+                if matches!(event, TrayToGui::Exit) {
+                    break;
+                }
+            }
+            
+            // Small sleep to avoid busy-waiting
+            std::thread::sleep(std::time::Duration::from_millis(50));
+        }
+    });
 }
 
 #[cfg(test)]
