@@ -662,7 +662,7 @@ impl Application for GameOptimizer {
         Command::none()
     }
 
-    fn view(&self) -> Element<Message> {
+    fn view(&self) -> Element<'_, Message> {
         // Left panel - Profile list
         let mut profile_list = Column::new()
             .spacing(5)
