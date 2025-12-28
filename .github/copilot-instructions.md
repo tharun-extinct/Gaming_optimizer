@@ -2,23 +2,40 @@
 applyTo: **/*
 ---
 **Project name:** Edge Optimizer
+
+
 **Project description:** Edge Optimizer is a high-performance RUST-based application designed to 
-    - kill unwanted background processes (that are necessary for gaming)
-    - optimize system performance (Tweaking power plans, disabling Ethernet Energy Efficient mode for lower input delay, etc.)
-    - Add Crosshair overlays for better aiming in FPS games
-    - Boost network performance for reduced latency during online gaming sessions.
+  - kill unwanted background processes (that are necessary for gaming)
+  - optimize system performance (Tweaking power plans, disabling Ethernet Energy Efficient mode for lower input delay, etc.)
+  - Add Crosshair overlays for better aiming in FPS games
+  - Boost network performance for reduced latency during online gaming sessions.
 
 
-**This is how you should act**:
+**This is how you should always act**:
 - Always Plan first before writing any code.
-  { - Break down the problem into smaller parts (Todo list).
-    - Focus on performance and low latency optimizations,
+  { 
+    - Break down the problem into smaller parts (Create Todo list)
+    - Focus on performance and low latency optimizations
+    - Ask when anything's unclear (might be tech stack or feature related but never assume)
 
   }
 
-This project is pure RUST stack.
+- Refining Ideas:
+  {
+    - Suggest multiple approaches to implement/ solve a feature (approaches can be tech stack, architecture, algorithms, libraries, etc)
+  }
+
+- When providing code suggestions, prioritize:
+  {
+    - Performance optimization and Low latency execution
+    - Always think about edge cases and how to handle them
+    - Consider user experience and usability
+    - Efficient error handling and logging
+    - Clean, modular architecture
+    - Think about scalability and maintainability of the codebase
+  }
 
 
+- For referring latest document and resolving package error use Context7 MCP.
 
-For refering document use Context7 MCP.
-Always use mermaid code blocks to represent flowcharts, diagrams, and other visual representations.
+- Always use mermaid code blocks to represent flowcharts, diagrams, and other visual representations.
