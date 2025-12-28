@@ -1,26 +1,60 @@
 # Gaming Optimizer
 
-A lightweight Rust desktop application for Windows that optimizes gaming performance by managing system processes and providing a customizable crosshair overlay.
+A comprehensive Rust desktop application for Windows that optimizes gaming performance through an intuitive GUI interface. Features process management, customizable crosshair overlays, and gaming profile management with system tray integration.
 
 ## Features
 
-- **Process Management**: Automatically kill unwanted system processes to free up resources
-- **Crosshair Overlay**: Display custom PNG crosshairs (100x100) with click-through functionality
-- **Gaming Profiles**: Create multiple profiles with different optimization settings
-- **System Tray Integration**: Quick access to all features from the system tray
+### 🎮 Complete GUI Application
+- **Modern Interface**: Full-featured GUI built with ICED framework
+- **Profile Management**: Create, edit, save, and delete gaming profiles through visual interface
+- **Live Process Browser**: Browse and select running processes to terminate
+- **Real-time Status**: Live feedback on all operations and system state
+
+### 🎯 Advanced Crosshair Overlay
+- **Custom PNG Crosshairs**: Support for any PNG image with transparency
+- **Live Position Adjustment**: Arrow buttons for pixel-perfect crosshair positioning
+- **Independent Process**: Crosshair runs as separate executable that survives app closure
+- **DWM Composition**: Uses Windows Desktop Window Manager like Xbox Game Bar for fullscreen compatibility
+- **Click-through**: Completely transparent to mouse clicks
+- **Always-on-top**: Aggressive topmost enforcement for gaming compatibility
+
+### ⚡ Process Optimization
+- **Smart Process Killing**: Automatically terminate unwanted background applications
 - **Safety Protection**: Built-in blocklist prevents killing critical system processes
-- **Low Memory Footprint**: Optimized for minimal resource usage
+- **Live Process List**: Real-time view of running processes with CPU/memory stats
+- **Process Filtering**: Search and filter through running applications
+
+### 🎮 Gaming Profiles
+- **Multiple Profiles**: Create unlimited gaming profiles for different games
+- **One-click Activation**: Switch between profiles instantly
+- **Process Groups**: Define which processes to kill per profile
+- **Crosshair Settings**: Per-profile crosshair configuration
+- **Fan Control**: Optional max fan speed toggle for better cooling
+
+### 🖥️ System Tray Integration
+- **Quick Access**: Tray icon for instant profile switching
+- **Minimize to Tray**: Application minimizes to system tray
+- **Context Menu**: Full profile management from tray
+- **Status Indicators**: Visual feedback on active profiles
+
+### 🔧 Advanced Features
+- **Crosshair Centering**: One-click reset to screen center
+- **Offset Controls**: Fine-tune crosshair position with live preview
+- **Image Validation**: Automatic PNG validation and error reporting
+- **Profile Persistence**: Automatic saving and loading of all settings
+- **Low Resource Usage**: Optimized for minimal system impact
 
 ## Tech Stack
 
 - **Language**: Rust (2021 edition)
-- **Platform**: Windows only
-- **Dependencies**:
+- **GUI Framework**: ICED - Modern, cross-platform GUI library
+- **Platform**: Windows 10/11 only
+- **System Integration**:
+  - `windows` crate - Direct Windows API access for DWM composition
   - `tray-icon` - System tray functionality
-  - `winit` - Window creation for overlay
-  - `image` - PNG image loading
-  - `sysinfo` - Process management
-  - `softbuffer` - Software rendering
+  - `sysinfo` - Process enumeration and management
+  - `image` - PNG loading and processing
+  - `rfd` - Native file dialogs
 
 ## Build Requirements
 
@@ -48,6 +82,7 @@ The release build is optimized for:
 ### Output Location
 - Debug: `target/debug/gaming_optimizer.exe`
 - Release: `target/release/gaming_optimizer.exe`
+- Crosshair: `target/release/crosshair.exe` (separate process)
 
 ## Running
 
@@ -62,86 +97,80 @@ cargo run --release
 ./target/release/gaming_optimizer.exe
 ```
 
-The application will start in the system tray. Look for the Gaming Optimizer icon in your Windows system tray.
+The application will start with a full GUI window. You can minimize it to the system tray for background operation.
 
 ## Configuration
 
 ### Data Directory
 
-The application stores configuration and profiles in:
+The application automatically stores configuration and profiles in:
 ```
 %APPDATA%\GamingOptimizer\
-├── config.json          # Application state
-├── profiles.json        # Gaming profiles
+├── profiles.json        # Gaming profiles (auto-managed)
 └── crosshairs/          # Optional: Store crosshair images here
 ```
 
-### Creating Profiles
+### Using the GUI
 
-1. Right-click the tray icon and select **Settings**
-2. This opens the data directory in File Explorer
-3. Create or edit `profiles.json` with your gaming profiles
+#### Creating Your First Profile
+1. **Launch the application**
+2. **Click "New Profile"** in the top-left
+3. **Enter a profile name** (e.g., "Fortnite", "CS2", "Valorant")
+4. **Configure settings**:
+   - **Process Selection**: Browse running processes and check which ones to kill
+   - **Crosshair**: Click "Select Image" to choose a PNG crosshair
+   - **Position**: Use arrow buttons (▲▼◀▶) to adjust crosshair position
+   - **Fan Control**: Toggle "Max Fan Speed" if desired
+5. **Click "Save Profile"**
 
-### Example profiles.json
+#### Activating a Profile
+1. **Select a profile** from the left panel
+2. **Click "Activate Profile"**
+3. The app will:
+   - Kill all selected processes
+   - Launch the crosshair overlay (if configured)
+   - Show status messages for all operations
 
-```json
-[
-  {
-    "name": "CS:GO",
-    "processes_to_kill": ["discord.exe", "spotify.exe", "chrome.exe"],
-    "crosshair_image_path": "C:/Users/YourName/AppData/Roaming/GamingOptimizer/crosshairs/csgo.png",
-    "crosshair_x_offset": 0,
-    "crosshair_y_offset": 2,
-    "overlay_enabled": true
-  },
-  {
-    "name": "Valorant",
-    "processes_to_kill": ["discord.exe", "obs64.exe"],
-    "crosshair_image_path": null,
-    "crosshair_x_offset": 0,
-    "crosshair_y_offset": 0,
-    "overlay_enabled": false
-  }
-]
-```
+#### Adjusting Crosshair Live
+- **Arrow Buttons**: Click ▲▼◀▶ to move crosshair by 1 pixel
+- **Center Button**: Click ⊙ to reset to screen center
+- **Changes apply instantly** - no need to reactivate profile
 
-### Profile Fields
+#### Managing Processes
+- **Refresh Button**: Updates the live process list
+- **Filter Box**: Search for specific processes
+- **Checkboxes**: Select which processes to kill when profile activates
 
-- **name**: Profile name (1-50 characters, must be unique)
-- **processes_to_kill**: Array of process names to terminate (e.g., "discord.exe")
-- **crosshair_image_path**: Path to 100x100 PNG crosshair image (or `null` for no crosshair)
-- **crosshair_x_offset**: Horizontal offset in pixels from center (-500 to +500)
-- **crosshair_y_offset**: Vertical offset in pixels from center (-500 to +500)
-- **overlay_enabled**: Whether to show overlay when profile is active
+## Crosshair Requirements
 
-## Usage
+- **Format**: PNG with transparency support
+- **Size**: Any size (automatically centered)
+- **Transparency**: Alpha channel for proper blending
+- **Location**: Any accessible path (file picker included)
 
-### Activating a Profile
+The application validates images automatically and shows error messages for invalid files.
 
-1. Right-click the tray icon
-2. Hover over **Profiles**
-3. Select your desired profile
-4. The application will:
-   - Kill all specified processes
-   - Show the crosshair overlay (if configured)
-   - Update the tray tooltip
+## Fullscreen Game Compatibility
 
-### Toggling Overlay
+### How It Works
+The crosshair uses **DWM (Desktop Window Manager) composition** - the same technology that powers:
+- Xbox Game Bar overlays
+- Discord in-game overlays
+- NVIDIA GeForce Experience overlays
+- Steam overlay
 
-1. Right-click the tray icon
-2. Click **Overlay Visible** to toggle on/off
-3. This option is only enabled when a profile with a crosshair is active
+### Fortnite Fullscreen Support
+**✅ Works with Fortnite "Fullscreen" mode** (default setting)
 
-### Deactivating Profile
+Modern Windows automatically enables "Fullscreen Optimizations" which secretly uses borderless windowed mode internally. This allows DWM overlays to appear.
 
-1. Right-click the tray icon
-2. Hover over **Profiles**
-3. Select **(None)**
+**To ensure compatibility:**
+1. Right-click `FortniteClient-Win64-Shipping.exe`
+2. Properties → Compatibility
+3. **UNCHECK** "Disable fullscreen optimizations" (leave it enabled)
 
-### Exiting
-
-1. Right-click the tray icon
-2. Click **Exit**
+### True Exclusive Fullscreen
+❌ **Will NOT work** with true exclusive fullscreen (optimizations disabled). This is rare and only used by very old games.
 
 ## Protected Processes
 
@@ -158,57 +187,88 @@ The following critical Windows processes cannot be killed for system stability:
 - `winlogon.exe` - Windows Logon
 - `svchost.exe` - Service Host
 
-## Crosshair Requirements
+## Usage Workflow
 
-- **Format**: PNG with transparency
-- **Size**: Exactly 100x100 pixels
-- **Location**: Can be anywhere accessible, but recommended to store in `%APPDATA%\GamingOptimizer\crosshairs\`
+### Gaming Session Setup
+1. **Launch Gaming Optimizer**
+2. **Create/select your game profile**
+3. **Configure processes to kill** (Discord, browsers, etc.)
+4. **Set up crosshair** (select PNG, adjust position)
+5. **Activate profile** before launching game
+6. **Launch your game** in fullscreen mode
+7. **Crosshair appears automatically** over the game
 
-Invalid images will be rejected with an error message.
+### During Gaming
+- Crosshair stays visible over fullscreen games
+- Use tray icon for quick profile switching
+- Crosshair survives if main app closes
+- Adjust position anytime with arrow controls
+
+### Ending Session
+- Deactivate profile to restore killed processes
+- Or simply exit the game (processes auto-restart)
+
+## System Tray Features
+
+- **Profile Switching**: Quick access to all profiles
+- **Overlay Toggle**: Show/hide crosshair instantly
+- **Minimize**: GUI minimizes to tray
+- **Exit**: Clean shutdown of all components
 
 ## Troubleshooting
 
-### Application doesn't start
-- Check that you're running on Windows
-- Ensure all dependencies are built correctly
+### Crosshair not showing over game
+- Ensure game uses "Fullscreen" (not "Windowed Fullscreen")
+- Check "Disable fullscreen optimizations" is **unchecked** in game properties
+- Verify crosshair image is valid PNG with transparency
+- Try activating profile after game is running
+
+### Processes not killing
+- Verify process names are correct (include .exe)
+- Check if process is in protected list
+- Try running Gaming Optimizer as administrator
+- Some processes may require special permissions
+
+### GUI not responding
 - Check Windows Event Viewer for errors
-
-### Crosshair not showing
-- Verify the PNG is exactly 100x100 pixels
-- Check that the file path in profiles.json is correct
-- Ensure overlay_enabled is set to true
-- Check application logs for image loading errors
-
-### Process won't kill
-- Verify the process name is correct (case-insensitive, include .exe)
-- Check if the process is in the protected list
-- Ensure you have permission to terminate the process
+- Ensure all Windows features are enabled
 - Try running as administrator
 
-### Profiles not loading
-- Check that profiles.json is valid JSON
-- Verify file is in `%APPDATA%\GamingOptimizer\`
-- Check for syntax errors in JSON
+### Crosshair position wrong
+- Use arrow buttons (▲▼◀▶) to adjust live
+- Click ⊙ to center on screen
+- Changes apply instantly without restarting
 
-## Development
-
-### Project Structure
+## Project Structure
 
 ```
 Gaming_optimizer/
-├── Cargo.toml           # Dependencies and build config
+├── Cargo.toml              # Dependencies and build config
 ├── src/
-│   ├── main.rs          # Application entry point and event loop
-│   ├── tray.rs          # System tray management
-│   ├── overlay.rs       # Crosshair overlay window
-│   ├── process.rs       # Process killing logic
-│   ├── profile.rs       # Gaming profile management
-│   └── config.rs        # Configuration and storage
+│   ├── main.rs             # Application entry point
+│   ├── gui/
+│   │   ├── mod.rs          # Main ICED GUI application
+│   │   ├── profile_editor.rs # Profile editing interface
+│   │   └── styles.rs       # UI theming
+│   ├── bin/
+│   │   └── crosshair.rs    # Standalone crosshair process
+│   ├── crosshair_overlay.rs # Crosshair launcher
+│   ├── tray.rs             # System tray management
+│   ├── process.rs          # Process enumeration/killing
+│   ├── profile.rs          # Profile data structures
+│   ├── config.rs           # Configuration management
+│   ├── image_picker.rs     # File dialog utilities
+│   ├── common_apps.rs      # Common application database
+│   └── ipc.rs              # Inter-process communication
+├── target/
+│   ├── debug/              # Debug builds
+│   └── release/            # Release builds (gaming_optimizer.exe, crosshair.exe)
 └── README.md
 ```
 
-### Testing
+## Development
 
+### Testing
 ```bash
 # Run tests
 cargo test
@@ -217,8 +277,7 @@ cargo test
 cargo test -- --nocapture
 ```
 
-### Code Style
-
+### Code Quality
 ```bash
 # Format code
 cargo fmt
@@ -229,24 +288,25 @@ cargo clippy
 
 ## Known Limitations
 
-- **Windows only** - Uses Windows-specific APIs
-- **Single monitor** - Overlay centers on primary monitor only
-- **Manual profile editing** - No GUI settings window (uses JSON files)
-- **No hotkeys** - Overlay toggle only via tray menu
-- **No auto-activation** - Profiles must be manually activated
+- **Windows only** - Uses Windows-specific DWM APIs
+- **Single monitor** - Centers on primary display only
+- **Manual activation** - No auto-detection of running games
+- **PNG only** - Crosshair images must be PNG format
 
 ## Future Enhancements
 
 Potential features for future versions:
 
-- GUI settings window with visual editor
-- Global hotkey support for overlay toggle
 - Multi-monitor support with monitor selection
-- Customizable crosshair sizes
 - Game detection and auto-profile activation
-- Performance metrics display
-- Multiple simultaneous overlays
-- Crosshair opacity adjustment
+- Global hotkeys for overlay toggle
+- Crosshair library with built-in designs
+- Performance metrics overlay
+- Profile sharing/import
+- Advanced process rules (CPU/memory thresholds)
+- Custom crosshair shapes (not just images)
+- Overlay opacity controls
+- Profile scheduling (time-based activation)
 
 ## License
 
@@ -254,7 +314,9 @@ This project is provided as-is for gaming optimization purposes.
 
 ## Support
 
-For issues or questions, please check:
-1. This README for common solutions
-2. The troubleshooting section
-3. Application logs in the data directory
+For issues or questions:
+1. Check this README for common solutions
+2. Verify game compatibility settings
+3. Test with different fullscreen modes
+4. Check application status messages
+5. Ensure proper administrator permissions
