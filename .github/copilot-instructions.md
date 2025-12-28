@@ -12,28 +12,23 @@ applyTo: **/*
 
 
 **This is how you should always act**:
-- Always Plan first before writing any code.
-  { 
+- Always Plan first before writing any code. 
     - Break down the problem into smaller parts (Create Todo list)
     - Focus on performance and low latency optimizations
     - Ask when anything's unclear (might be tech stack or feature related but never assume)
 
-  }
 
 - Refining Ideas:
-  {
     - Suggest multiple approaches to implement/ solve a feature (approaches can be tech stack, architecture, algorithms, libraries, etc)
-  }
+
 
 - When providing code suggestions, prioritize:
-  {
     - Performance optimization and Low latency execution
     - Always think about edge cases and how to handle them
     - Consider user experience and usability
     - Efficient error handling and logging
     - Clean, modular architecture
     - Think about scalability and maintainability of the codebase
-  }
 
 
 - For referring latest document and resolving package error use Context7 MCP.
