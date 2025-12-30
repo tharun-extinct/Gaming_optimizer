@@ -1,8 +1,11 @@
 {
     "servers": {
         "memory": {
-            "command": "local-memory-mcp",
-            "args": ["--db-path", "./memory.vscdb"]
+            "command": "npx",
+            "args": ["-y", "@modelcontextprotocol/server-memory"],
+            "env": {
+                "MEMORY_FILE_PATH": "./memory.jsonl"
+            }
         }
     }
 }

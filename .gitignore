@@ -28,3 +28,6 @@ References/
 #.idea/
 # VS Code SQLite databases
 *.vscdb
+
+# MCP Memory files
+memory.jsonl
