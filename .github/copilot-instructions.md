@@ -37,3 +37,10 @@ description: High-performance RUST-based gaming optimization application
 - For referring latest document and resolving package error use Context7 MCP.
 
 - Always use mermaid code blocks to represent flowcharts, diagrams, and other visual representations.
+
+
+
+Before answering:
+1. Query the memory MCP for related project decisions
+2. If missing, ask me before proceeding
+3. Store new decisions in memory after the response
