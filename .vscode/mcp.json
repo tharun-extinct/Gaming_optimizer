@@ -4,7 +4,7 @@
             "command": "npx",
             "args": ["-y", "@modelcontextprotocol/server-memory"],
             "env": {
-                "MEMORY_FILE_PATH": "./memory.jsonl"
+                "MEMORY_FILE_PATH": "X:/AI_and_Automation/Gaming_optimizer/.vscode/memory.jsonl"
             }
         }
     }
