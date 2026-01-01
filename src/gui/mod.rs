@@ -15,21 +15,16 @@ use crate::profile::{load_profiles, save_profiles};
 use crate::image_picker::{open_image_picker, validate_crosshair_image};
 use crate::process::{list_processes, kill_processes, ProcessInfo};
 use crate::crosshair_overlay::{self, OverlayHandle};
-use tray_icon::menu::{Menu, MenuEvent, MenuItem, PredefinedMenuItem, Submenu};
-use tray_icon::{TrayIcon, TrayIconBuilder, Icon};
+use crate::ipc::{TrayToGui, GuiToTray};
 use std::sync::Mutex;
+use std::sync::mpsc::{Sender, Receiver};
 use once_cell::sync::Lazy;
 
-#[derive(Debug, Clone, Default)]
-struct TrayMenuIds {
-    profile_ids: Vec<(String, String)>, // (menu_id string, profile name)
-    none_id: String,
-    overlay_id: String,
-    settings_id: String,
-    exit_id: String,
-}
+/// Global channel for receiving messages from tray thread
+static TRAY_RECEIVER: Lazy<Mutex<Option<Receiver<TrayToGui>>>> = Lazy::new(|| Mutex::new(None));
 
-static TRAY_MENU_IDS: Lazy<Mutex<TrayMenuIds>> = Lazy::new(|| Mutex::new(TrayMenuIds::default()));
+/// Global channel for sending messages to tray thread
+static TRAY_SENDER: Lazy<Mutex<Option<Sender<GuiToTray>>>> = Lazy::new(|| Mutex::new(None));
 
 #[derive(Debug, Clone)]
 pub enum Message {
@@ -96,149 +91,41 @@ pub struct GameOptimizer {
     // Active profile
     active_profile_name: Option<String>,
     
-    // Tray icon (must be kept alive)
-    tray_icon: Option<TrayIcon>,
-    
     // Crosshair overlay handle
     overlay_handle: Option<OverlayHandle>,
 }
 
-fn create_tray_icon(profiles: &[Profile], active_profile: Option<&str>) -> Option<TrayIcon> {
-    let menu = Menu::new();
-    
-    // Title
-    let title = MenuItem::new("Gaming Optimizer", false, None);
-    let _ = menu.append(&title);
-    let _ = menu.append(&PredefinedMenuItem::separator());
-    
-    // Profiles submenu
-    let profile_submenu = Submenu::new("📋 Profiles", true);
-    
-    let mut profile_ids = Vec::new();
-    
-    if profiles.is_empty() {
-        let no_profiles = MenuItem::new("(No profiles)", false, None);
-        let _ = profile_submenu.append(&no_profiles);
-    } else {
-        for profile in profiles {
-            let is_active = active_profile == Some(&profile.name);
-            let label = if is_active {
-                format!("✓ {}", profile.name)
-            } else {
-                profile.name.clone()
-            };
-            let item = MenuItem::new(&label, true, None);
-            profile_ids.push((item.id().0.to_string(), profile.name.clone()));
-            let _ = profile_submenu.append(&item);
-        }
-        
-        let _ = profile_submenu.append(&PredefinedMenuItem::separator());
-        let none_item = MenuItem::new("(Deactivate)", true, None);
-        
-        if let Ok(mut ids) = TRAY_MENU_IDS.lock() {
-            ids.none_id = none_item.id().0.to_string();
-        }
-        let _ = profile_submenu.append(&none_item);
-    }
-    
-    let _ = menu.append(&profile_submenu);
-    let _ = menu.append(&PredefinedMenuItem::separator());
-    
-    // Overlay toggle
-    let overlay_item = MenuItem::new("🎯 Toggle Overlay", true, None);
-    if let Ok(mut ids) = TRAY_MENU_IDS.lock() {
-        ids.overlay_id = overlay_item.id().0.to_string();
-    }
-    let _ = menu.append(&overlay_item);
-    
-    let _ = menu.append(&PredefinedMenuItem::separator());
-    
-    // Settings (show window)
-    let settings_item = MenuItem::new("⚙ Open Settings", true, None);
-    if let Ok(mut ids) = TRAY_MENU_IDS.lock() {
-        ids.settings_id = settings_item.id().0.to_string();
-    }
-    let _ = menu.append(&settings_item);
-    
-    // Exit
-    let exit_item = MenuItem::new("❌ Exit", true, None);
-    if let Ok(mut ids) = TRAY_MENU_IDS.lock() {
-        ids.exit_id = exit_item.id().0.to_string();
-        ids.profile_ids = profile_ids;
-    }
-    let _ = menu.append(&exit_item);
-    
-    // Load icon from file or use embedded fallback
-    let icon = load_tray_icon().unwrap_or_else(|| {
-        // Fallback: simple 16x16 green square
-        let icon_rgba: Vec<u8> = (0..16*16).flat_map(|_| vec![0x00, 0xAA, 0x00, 0xFF]).collect();
-        Icon::from_rgba(icon_rgba, 16, 16).expect("Failed to create fallback icon")
-    });
-    
-    // Build tray icon
-    match TrayIconBuilder::new()
-        .with_menu(Box::new(menu))
-        .with_tooltip("Gaming Optimizer")
-        .with_icon(icon)
-        .build()
-    {
-        Ok(tray) => Some(tray),
-        Err(e) => {
-            eprintln!("Failed to create tray icon: {}", e);
-            None
-        }
-    }
-}
-
-fn load_tray_icon() -> Option<Icon> {
-    // Try to load from favicon.ico in the exe directory or current directory
-    let paths_to_try = vec![
-        std::env::current_exe().ok()?.parent()?.join("favicon.ico"),
-        std::path::PathBuf::from("favicon.ico"),
-        std::path::PathBuf::from("X:\\AI_and_Automation\\Gaming_optimizer\\favicon.ico"),
-    ];
-    
-    for path in paths_to_try {
-        if path.exists() {
-            // Load the ICO file using the image crate
-            if let Ok(img) = image::open(&path) {
-                let rgba = img.to_rgba8();
-                let (width, height) = rgba.dimensions();
-                let raw = rgba.into_raw();
-                if let Ok(icon) = Icon::from_rgba(raw, width, height) {
-                    return Some(icon);
+/// Check for messages from tray flyout thread
+fn check_tray_messages() -> Option<Message> {
+    if let Ok(guard) = TRAY_RECEIVER.lock() {
+        if let Some(ref rx) = *guard {
+            match rx.try_recv() {
+                Ok(msg) => {
+                    return Some(match msg {
+                        TrayToGui::ActivateProfile(name) => Message::TrayProfileSelected(name),
+                        TrayToGui::DeactivateProfile => Message::TrayDeactivate,
+                        TrayToGui::ToggleOverlay => Message::TrayDeactivate, // Reuse deactivate for now
+                        TrayToGui::OpenSettings => {
+                            // Window is already open - this message is for when minimized
+                            return None;
+                        }
+                        TrayToGui::Exit => Message::TrayExit,
+                    });
                 }
-            }
-        }
-    }
-    
-    None
-}
-
-fn check_tray_events() -> Option<Message> {
-    if let Ok(event) = MenuEvent::receiver().try_recv() {
-        let event_id = event.id.0.to_string();
-        
-        if let Ok(ids) = TRAY_MENU_IDS.lock() {
-            // Check exit
-            if event_id == ids.exit_id {
-                return Some(Message::TrayExit);
-            }
-            
-            // Check deactivate
-            if event_id == ids.none_id {
-                return Some(Message::TrayDeactivate);
-            }
-            
-            // Check profiles
-            for (id, name) in &ids.profile_ids {
-                if &event_id == id {
-                    return Some(Message::TrayProfileSelected(name.clone()));
-                }
+                Err(_) => {}
             }
         }
     }
     None
+}
+
+/// Send message to tray thread
+fn send_to_tray(msg: GuiToTray) {
+    if let Ok(guard) = TRAY_SENDER.lock() {
+        if let Some(ref tx) = *guard {
+            let _ = tx.send(msg);
+        }
+    }
 }
 
 impl GameOptimizer {
@@ -433,8 +320,9 @@ impl GameOptimizer {
     }
     
     fn update_tray(&mut self) {
-        // Recreate tray with updated menu
-        self.tray_icon = create_tray_icon(&self.profiles, self.active_profile_name.as_deref());
+        // Send updated profiles and active profile to tray thread
+        send_to_tray(GuiToTray::ProfilesUpdated(self.profiles.clone()));
+        send_to_tray(GuiToTray::ActiveProfileChanged(self.active_profile_name.clone()));
     }
 }
 
@@ -461,14 +349,13 @@ impl Application for GameOptimizer {
             status_message: "Welcome to Gaming Optimizer".to_string(),
             data_dir,
             active_profile_name: None,
-            tray_icon: None,
             overlay_handle: None,
         };
         app.load_profiles_from_disk();
         app.refresh_running_processes();
         
-        // Create tray icon
-        app.tray_icon = create_tray_icon(&app.profiles, None);
+        // Send initial profiles to tray thread
+        send_to_tray(GuiToTray::ProfilesUpdated(app.profiles.clone()));
         
         (app, Command::none())
     }
@@ -478,7 +365,7 @@ impl Application for GameOptimizer {
     }
 
     fn subscription(&self) -> Subscription<Message> {
-        // Poll for tray menu events
+        // Poll for tray thread messages
         struct TrayPoller;
         
         iced::subscription::unfold(
@@ -494,8 +381,8 @@ impl Application for GameOptimizer {
     fn update(&mut self, message: Message) -> Command<Message> {
         match message {
             Message::TrayTick => {
-                // Check for tray menu events
-                if let Some(tray_msg) = check_tray_events() {
+                // Check for messages from tray flyout thread
+                if let Some(tray_msg) = check_tray_messages() {
                     return self.update(tray_msg);
                 }
             }
@@ -509,8 +396,8 @@ impl Application for GameOptimizer {
             }
             
             Message::TrayExit => {
-                // Exit the app
-                self.tray_icon = None;
+                // Send shutdown to tray thread
+                send_to_tray(GuiToTray::Shutdown);
                 std::process::exit(0);
             }
             
@@ -1035,6 +922,38 @@ impl GameOptimizer {
 }
 
 pub fn run() -> iced::Result {
+    // Load configuration and profiles for tray
+    let app_config = crate::config::load_config();
+    let data_dir = crate::config::get_data_directory().expect("Failed to get data directory");
+    let profiles = crate::profile::load_profiles(&data_dir).unwrap_or_default();
+    
+    // Create IPC channels
+    let (gui_to_tray_tx, gui_to_tray_rx) = std::sync::mpsc::channel();
+    let (tray_to_gui_tx, tray_to_gui_rx) = std::sync::mpsc::channel();
+    
+    // Store channels in global statics for GUI to use
+    if let Ok(mut guard) = TRAY_RECEIVER.lock() {
+        *guard = Some(tray_to_gui_rx);
+    }
+    if let Ok(mut guard) = TRAY_SENDER.lock() {
+        *guard = Some(gui_to_tray_tx);
+    }
+    
+    let channels = crate::ipc::TrayChannels {
+        to_gui: tray_to_gui_tx,
+        from_gui: gui_to_tray_rx,
+    };
+    
+    // Start tray flyout thread
+    std::thread::spawn(move || {
+        crate::tray_flyout::run_tray_flyout_thread(
+            channels,
+            profiles,
+            app_config.active_profile,
+        );
+    });
+    
+    // Run iced GUI
     GameOptimizer::run(Settings {
         window: iced::window::Settings {
             size: iced::Size::new(1000.0, 750.0),
