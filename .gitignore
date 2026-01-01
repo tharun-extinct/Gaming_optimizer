@@ -31,3 +31,7 @@ References/
 
 # MCP Memory files
 memory.jsonl
+
+# Untrack agent/prompts folders
+.github/agents/
+.github/prompts/
