@@ -15,16 +15,30 @@ use crate::profile::{load_profiles, save_profiles};
 use crate::image_picker::{open_image_picker, validate_crosshair_image};
 use crate::process::{list_processes, kill_processes, ProcessInfo};
 use crate::crosshair_overlay::{self, OverlayHandle};
-use crate::ipc::{TrayToGui, GuiToTray};
+use crate::tray_flyout::TrayFlyoutManager;
 use std::sync::Mutex;
-use std::sync::mpsc::{Sender, Receiver};
+use std::sync::mpsc::Receiver;
+use std::time::Instant;
 use once_cell::sync::Lazy;
+use tray_icon::{TrayIconEvent, MouseButton, MouseButtonState};
+use tray_icon::menu::MenuEvent;
+use windows::Win32::UI::WindowsAndMessaging::{MSG, PeekMessageW, TranslateMessage, DispatchMessageW, PM_REMOVE};
 
-/// Global channel for receiving messages from tray thread
-static TRAY_RECEIVER: Lazy<Mutex<Option<Receiver<TrayToGui>>>> = Lazy::new(|| Mutex::new(None));
+/// Global channel for tray icon events
+static TRAY_EVENT_RX: Lazy<Mutex<Option<Receiver<TrayIconEvent>>>> = Lazy::new(|| Mutex::new(None));
 
-/// Global channel for sending messages to tray thread
-static TRAY_SENDER: Lazy<Mutex<Option<Sender<GuiToTray>>>> = Lazy::new(|| Mutex::new(None));
+/// Global channel for menu events
+static MENU_EVENT_RX: Lazy<Mutex<Option<Receiver<MenuEvent>>>> = Lazy::new(|| Mutex::new(None));
+
+/// Global sender for profile activations from flyout
+static FLYOUT_PROFILE_RX: Lazy<Mutex<Option<Receiver<String>>>> = Lazy::new(|| Mutex::new(None));
+
+/// Track click timing for double-click detection
+static LAST_CLICK_TIME: Lazy<Mutex<Option<Instant>>> = Lazy::new(|| Mutex::new(None));
+static PENDING_SINGLE_CLICK: Lazy<Mutex<bool>> = Lazy::new(|| Mutex::new(false));
+
+/// Store menu item IDs for checking exit
+static MENU_EXIT_ID: Lazy<Mutex<Option<tray_icon::menu::MenuId>>> = Lazy::new(|| Mutex::new(None));
 
 #[derive(Debug, Clone)]
 pub enum Message {
@@ -93,39 +107,141 @@ pub struct GameOptimizer {
     
     // Crosshair overlay handle
     overlay_handle: Option<OverlayHandle>,
+    
+    // Tray manager (kept in app state since TrayIcon is !Send)
+    tray_manager: Option<TrayFlyoutManager>,
 }
 
-/// Check for messages from tray flyout thread
-fn check_tray_messages() -> Option<Message> {
-    if let Ok(guard) = TRAY_RECEIVER.lock() {
+/// Tray action to be processed by the app
+#[derive(Debug, Clone)]
+enum TrayAction {
+    ShowFlyout,
+    HideFlyout,
+    ProfileSelected(String),
+    Exit,
+    None,
+}
+
+/// Process tray events - returns action for the app to handle
+fn process_tray_events() -> TrayAction {
+    // IMPORTANT: Pump Windows messages for tray icon to work
+    // iced's winit doesn't process these by default
+    unsafe {
+        use windows::Win32::UI::WindowsAndMessaging::*;
+        let mut msg = MSG::default();
+        while PeekMessageW(&mut msg, None, 0, 0, PM_REMOVE).as_bool() {
+            // Don't process WM_QUIT here - let iced handle shutdown
+            if msg.message == WM_QUIT {
+                println!("[GUI] WM_QUIT received in message pump - ignoring");
+                continue;
+            }
+            TranslateMessage(&msg);
+            DispatchMessageW(&msg);
+        }
+    }
+    
+    // Check for profile activation from flyout
+    if let Ok(guard) = FLYOUT_PROFILE_RX.lock() {
         if let Some(ref rx) = *guard {
-            match rx.try_recv() {
-                Ok(msg) => {
-                    return Some(match msg {
-                        TrayToGui::ActivateProfile(name) => Message::TrayProfileSelected(name),
-                        TrayToGui::DeactivateProfile => Message::TrayDeactivate,
-                        TrayToGui::ToggleOverlay => Message::TrayDeactivate, // Reuse deactivate for now
-                        TrayToGui::OpenSettings => {
-                            // Window is already open - this message is for when minimized
-                            return None;
-                        }
-                        TrayToGui::Exit => Message::TrayExit,
-                    });
-                }
-                Err(_) => {}
+            if let Ok(profile_name) = rx.try_recv() {
+                println!("[GUI] Profile activated from flyout: {}", profile_name);
+                return TrayAction::ProfileSelected(profile_name);
             }
         }
     }
-    None
-}
-
-/// Send message to tray thread
-fn send_to_tray(msg: GuiToTray) {
-    if let Ok(guard) = TRAY_SENDER.lock() {
-        if let Some(ref tx) = *guard {
-            let _ = tx.send(msg);
+    
+    // Check for menu events (right-click context menu)
+    if let Ok(guard) = MENU_EVENT_RX.lock() {
+        if let Some(ref rx) = *guard {
+            if let Ok(event) = rx.try_recv() {
+                println!("[GUI] Menu event received: {:?}", event);
+                // Check if it's the exit item
+                if let Ok(exit_guard) = MENU_EXIT_ID.lock() {
+                    if let Some(ref exit_id) = *exit_guard {
+                        if event.id == *exit_id {
+                            return TrayAction::Exit;
+                        }
+                    }
+                }
+            }
         }
     }
+    
+    // Check for tray icon click events
+    if let Ok(guard) = TRAY_EVENT_RX.lock() {
+        if let Some(ref rx) = *guard {
+            if let Ok(event) = rx.try_recv() {
+                match event {
+                    TrayIconEvent::Click { button, button_state, .. } => {
+                        if button == MouseButton::Left && button_state == MouseButtonState::Up {
+                            let now = Instant::now();
+                            
+                            // Check for double-click
+                            let is_double_click = if let Ok(guard) = LAST_CLICK_TIME.lock() {
+                                if let Some(last_time) = *guard {
+                                    now.duration_since(last_time).as_millis() < 500
+                                } else {
+                                    false
+                                }
+                            } else {
+                                false
+                            };
+                            
+                            if is_double_click {
+                                // Double-click - clear state
+                                if let Ok(mut guard) = LAST_CLICK_TIME.lock() {
+                                    *guard = None;
+                                }
+                                if let Ok(mut guard) = PENDING_SINGLE_CLICK.lock() {
+                                    *guard = false;
+                                }
+                                println!("[GUI] Double-click detected - GUI already open");
+                                // GUI is already open, nothing to do
+                            } else {
+                                // First click - start timer
+                                if let Ok(mut guard) = LAST_CLICK_TIME.lock() {
+                                    *guard = Some(now);
+                                }
+                                if let Ok(mut guard) = PENDING_SINGLE_CLICK.lock() {
+                                    *guard = true;
+                                }
+                            }
+                        }
+                    }
+                    _ => {}
+                }
+            }
+        }
+    }
+    
+    // Check if single-click timer expired (show flyout)
+    let should_toggle_flyout = if let Ok(guard) = PENDING_SINGLE_CLICK.lock() {
+        if *guard {
+            if let Ok(time_guard) = LAST_CLICK_TIME.lock() {
+                if let Some(last_time) = *time_guard {
+                    Instant::now().duration_since(last_time).as_millis() >= 500
+                } else {
+                    false
+                }
+            } else {
+                false
+            }
+        } else {
+            false
+        }
+    } else {
+        false
+    };
+    
+    if should_toggle_flyout {
+        // Clear pending state
+        if let Ok(mut guard) = PENDING_SINGLE_CLICK.lock() {
+            *guard = false;
+        }
+        return TrayAction::ShowFlyout;
+    }
+    
+    TrayAction::None
 }
 
 impl GameOptimizer {
@@ -320,9 +436,23 @@ impl GameOptimizer {
     }
     
     fn update_tray(&mut self) {
-        // Send updated profiles and active profile to tray thread
-        send_to_tray(GuiToTray::ProfilesUpdated(self.profiles.clone()));
-        send_to_tray(GuiToTray::ActiveProfileChanged(self.active_profile_name.clone()));
+        // Update tray with current profiles
+        if let Some(ref mut tray) = self.tray_manager {
+            tray.update_profiles(self.profiles.clone());
+            tray.set_active_profile(self.active_profile_name.clone());
+        }
+    }
+    
+    fn toggle_flyout(&mut self) {
+        if let Some(ref mut tray) = self.tray_manager {
+            if tray.is_flyout_visible() {
+                tray.hide_flyout();
+            } else {
+                if let Err(e) = tray.show_flyout() {
+                    eprintln!("[GUI] Failed to show flyout: {}", e);
+                }
+            }
+        }
     }
 }
 
@@ -350,12 +480,36 @@ impl Application for GameOptimizer {
             data_dir,
             active_profile_name: None,
             overlay_handle: None,
+            tray_manager: None,  // Will be set by run() via Flags if we change approach
         };
         app.load_profiles_from_disk();
         app.refresh_running_processes();
         
-        // Send initial profiles to tray thread
-        send_to_tray(GuiToTray::ProfilesUpdated(app.profiles.clone()));
+        // Create tray manager on main thread (inside iced's new)
+        let app_config = crate::config::load_config();
+        match TrayFlyoutManager::new_with_channels(app.profiles.clone(), app_config.active_profile) {
+            Ok((tray, event_rx, menu_rx, profile_rx)) => {
+                // Store the exit menu ID
+                if let Ok(mut guard) = MENU_EXIT_ID.lock() {
+                    *guard = Some(tray.menu_item_exit.clone());
+                }
+                // Store channels in globals
+                if let Ok(mut guard) = TRAY_EVENT_RX.lock() {
+                    *guard = Some(event_rx);
+                }
+                if let Ok(mut guard) = MENU_EVENT_RX.lock() {
+                    *guard = Some(menu_rx);
+                }
+                if let Ok(mut guard) = FLYOUT_PROFILE_RX.lock() {
+                    *guard = Some(profile_rx);
+                }
+                app.tray_manager = Some(tray);
+                println!("[GUI] Tray manager created successfully");
+            }
+            Err(e) => {
+                eprintln!("[GUI] Failed to create tray: {}", e);
+            }
+        }
         
         (app, Command::none())
     }
@@ -365,14 +519,14 @@ impl Application for GameOptimizer {
     }
 
     fn subscription(&self) -> Subscription<Message> {
-        // Poll for tray thread messages
+        // Poll for tray events (faster polling for responsive click detection)
         struct TrayPoller;
         
         iced::subscription::unfold(
             std::any::TypeId::of::<TrayPoller>(),
             (),
             |_| async move {
-                std::thread::sleep(Duration::from_millis(100));
+                std::thread::sleep(Duration::from_millis(50)); // 50ms for responsive clicks
                 (Message::TrayTick, ())
             }
         )
@@ -381,9 +535,18 @@ impl Application for GameOptimizer {
     fn update(&mut self, message: Message) -> Command<Message> {
         match message {
             Message::TrayTick => {
-                // Check for messages from tray flyout thread
-                if let Some(tray_msg) = check_tray_messages() {
-                    return self.update(tray_msg);
+                // Process tray events (clicks, menu, flyout profile selection)
+                match process_tray_events() {
+                    TrayAction::ShowFlyout => {
+                        self.toggle_flyout();
+                    }
+                    TrayAction::ProfileSelected(name) => {
+                        return self.update(Message::TrayProfileSelected(name));
+                    }
+                    TrayAction::Exit => {
+                        return self.update(Message::TrayExit);
+                    }
+                    _ => {}
                 }
             }
             
@@ -396,8 +559,7 @@ impl Application for GameOptimizer {
             }
             
             Message::TrayExit => {
-                // Send shutdown to tray thread
-                send_to_tray(GuiToTray::Shutdown);
+                // Clean exit
                 std::process::exit(0);
             }
             
@@ -922,47 +1084,9 @@ impl GameOptimizer {
 }
 
 pub fn run() -> iced::Result {
-    println!("[GUI] Starting GUI run function...");
+    println!("[GUI] Starting GUI with integrated tray...");
     
-    // Load configuration and profiles for tray
-    let app_config = crate::config::load_config();
-    let data_dir = crate::config::get_data_directory().expect("Failed to get data directory");
-    let profiles = crate::profile::load_profiles(&data_dir).unwrap_or_default();
-    
-    println!("[GUI] Loaded {} profiles", profiles.len());
-    
-    // Create IPC channels
-    let (gui_to_tray_tx, gui_to_tray_rx) = std::sync::mpsc::channel();
-    let (tray_to_gui_tx, tray_to_gui_rx) = std::sync::mpsc::channel();
-    
-    // Store channels in global statics for GUI to use
-    if let Ok(mut guard) = TRAY_RECEIVER.lock() {
-        *guard = Some(tray_to_gui_rx);
-    }
-    if let Ok(mut guard) = TRAY_SENDER.lock() {
-        *guard = Some(gui_to_tray_tx);
-    }
-    
-    let channels = crate::ipc::TrayChannels {
-        to_gui: tray_to_gui_tx,
-        from_gui: gui_to_tray_rx,
-    };
-    
-    // Start tray flyout thread
-    println!("[GUI] Starting tray thread...");
-    std::thread::spawn(move || {
-        crate::tray_flyout::run_tray_flyout_thread(
-            channels,
-            profiles,
-            app_config.active_profile,
-        );
-    });
-    
-    // Small delay to let tray initialize
-    std::thread::sleep(std::time::Duration::from_millis(100));
-    
-    // Run iced GUI
-    println!("[GUI] About to launch iced application...");
+    // Tray is created inside Application::new() on main thread
     let result = GameOptimizer::run(Settings {
         window: iced::window::Settings {
             size: iced::Size::new(1000.0, 750.0),

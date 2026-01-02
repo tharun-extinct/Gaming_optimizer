@@ -32,6 +32,7 @@ description: High-performance RUST-based gaming optimization application
     - Efficient error handling and logging
     - Clean, modular architecture
     - Think about scalability and maintainability of the codebase
+    - Write code that are production ready
 
 
 - For referring latest document and resolving package error use Context7 MCP.
@@ -44,3 +45,8 @@ Before answering:
 1. Query the memory MCP for related project decisions
 2. If missing, ask me before proceeding
 3. Store new decisions in memory after the response
+
+
+Documentation Links:
+-[Windows-rs](https://github.com/microsoft/windows-rs)
+-[Iced GUI](https://github.com/iced-rs/iced)

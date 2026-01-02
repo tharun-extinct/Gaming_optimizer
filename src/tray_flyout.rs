@@ -7,35 +7,59 @@ use crate::flyout::FlyoutWindow;
 use crate::ipc::{TrayChannels, GuiToTray};
 use crate::profile::Profile;
 use anyhow::{anyhow, Result};
-use std::sync::mpsc::{Sender, TryRecvError, Receiver};
+use std::sync::mpsc::{Sender, TryRecvError, Receiver, channel};
 use std::time::Instant;
 use tray_icon::{TrayIcon, TrayIconBuilder, TrayIconEvent, MouseButton, MouseButtonState, Icon, menu::MenuEvent};
 use tray_icon::menu::{Menu, MenuItem, MenuId, PredefinedMenuItem};
 
 /// Load application icon from favicon.ico file
 fn load_app_icon() -> Result<Icon> {
-    let icon_path = std::path::Path::new("favicon.ico");
+    // Try multiple paths
+    let paths_to_try = vec![
+        std::env::current_exe().ok().and_then(|p| p.parent().map(|p| p.join("favicon.ico"))),
+        Some(std::path::PathBuf::from("favicon.ico")),
+        Some(std::path::PathBuf::from("X:\\AI_and_Automation\\Gaming_optimizer\\favicon.ico")),
+    ];
     
-    if !icon_path.exists() {
-        anyhow::bail!("favicon.ico not found in project root!");
+    for path_opt in paths_to_try {
+        if let Some(path) = path_opt {
+            if path.exists() {
+                let icon_data = std::fs::read(&path)
+                    .map_err(|e| anyhow!("Failed to read favicon.ico: {}", e))?;
+                
+                // Decode with image crate
+                let img = image::load_from_memory(&icon_data)
+                    .map_err(|e| anyhow!("Failed to decode icon: {}", e))?;
+                
+                let img = img.resize_exact(16, 16, image::imageops::FilterType::Lanczos3);
+                let rgba = img.to_rgba8();
+                
+                return Icon::from_rgba(rgba.into_raw(), 16, 16)
+                    .map_err(|e| anyhow!("Failed to create icon from image: {:?}", e));
+            }
+        }
     }
     
-    let icon_data = std::fs::read(icon_path)
-        .map_err(|e| anyhow!("Failed to read favicon.ico: {}", e))?;
+    // Fallback: green square
+    let icon_rgba: Vec<u8> = (0..16*16).flat_map(|_| vec![0x00, 0xAA, 0x00, 0xFF]).collect();
+    Icon::from_rgba(icon_rgba, 16, 16)
+        .map_err(|e| anyhow!("Failed to create fallback icon: {:?}", e))
+}
+
+/// Create a TrayToGui sender that forwards profile activations to a String channel
+fn create_profile_forwarder(profile_tx: Sender<String>) -> Sender<crate::ipc::TrayToGui> {
+    let (tx, rx) = channel::<crate::ipc::TrayToGui>();
     
-    // Try direct loading first
-    Icon::from_rgba(icon_data.clone(), 16, 16)
-        .or_else(|_| {
-            // If direct loading fails, decode with image crate
-            let img = image::load_from_memory(&icon_data)
-                .map_err(|e| anyhow!("Failed to decode icon: {}", e))?;
-            
-            let img = img.resize_exact(16, 16, image::imageops::FilterType::Lanczos3);
-            let rgba = img.to_rgba8();
-            
-            Icon::from_rgba(rgba.into_raw(), 16, 16)
-                .map_err(|e| anyhow!("Failed to create icon from image: {:?}", e))
-        })
+    // Spawn a small thread to forward messages
+    std::thread::spawn(move || {
+        while let Ok(msg) = rx.recv() {
+            if let crate::ipc::TrayToGui::ActivateProfile(name) = msg {
+                let _ = profile_tx.send(name);
+            }
+        }
+    });
+    
+    tx
 }
 
 /// Simplified tray manager that works with flyout
@@ -44,17 +68,24 @@ pub struct TrayFlyoutManager {
     flyout: Option<FlyoutWindow>,
     profiles: Vec<Profile>,
     active_profile: Option<String>,
-    menu_item_settings: MenuId,
-    menu_item_docs: MenuId,
-    menu_item_bug_report: MenuId,
-    menu_item_exit: MenuId,
+    pub menu_item_settings: MenuId,
+    pub menu_item_docs: MenuId,
+    pub menu_item_bug_report: MenuId,
+    pub menu_item_exit: MenuId,
+    /// Channel to send profile activations to GUI
+    profile_tx: Sender<String>,
+    /// For --tray-only mode: track click timing
     last_click_time: Option<Instant>,
     pending_single_click: bool,
 }
 
 impl TrayFlyoutManager {
-    /// Create a new tray icon without menu
-    pub fn new(profiles: Vec<Profile>, active_profile: Option<String>) -> Result<Self> {
+    /// Create a new tray manager with event channels for main-thread integration
+    /// Returns the manager plus receivers for tray events, menu events, and profile activations
+    pub fn new_with_channels(
+        profiles: Vec<Profile>, 
+        active_profile: Option<String>
+    ) -> Result<(Self, Receiver<TrayIconEvent>, Receiver<MenuEvent>, Receiver<String>)> {
         let tooltip = if let Some(ref name) = active_profile {
             format!("Gaming Optimizer - {}", name)
         } else {
@@ -100,7 +131,33 @@ impl TrayFlyoutManager {
         
         println!("[TRAY] Tray icon created successfully with context menu");
 
-        Ok(TrayFlyoutManager {
+        // Create channels for events
+        let (event_tx, event_rx) = channel::<TrayIconEvent>();
+        let (menu_tx, menu_rx) = channel::<MenuEvent>();
+        let (profile_tx, profile_rx) = channel::<String>();
+        
+        // Set up event handlers to forward events to channels
+        // Use a delay flag to prevent events during initialization
+        let startup_time = std::time::Instant::now();
+        TrayIconEvent::set_event_handler(Some(move |event| {
+            let elapsed = startup_time.elapsed().as_millis();
+            println!("[TRAY-HANDLER] Event received after {}ms: {:?}", elapsed, event);
+            // Ignore events in first 500ms to let iced start up
+            if elapsed > 500 {
+                let _ = event_tx.send(event);
+            }
+        }));
+        
+        let menu_startup = std::time::Instant::now();
+        MenuEvent::set_event_handler(Some(move |event| {
+            let elapsed = menu_startup.elapsed().as_millis();
+            println!("[MENU-HANDLER] Event received after {}ms: {:?}", elapsed, event);
+            if elapsed > 500 {
+                let _ = menu_tx.send(event);
+            }
+        }));
+
+        let manager = TrayFlyoutManager {
             tray_icon,
             flyout: None,
             profiles,
@@ -109,20 +166,29 @@ impl TrayFlyoutManager {
             menu_item_docs,
             menu_item_bug_report,
             menu_item_exit,
+            profile_tx,
             last_click_time: None,
             pending_single_click: false,
-        })
+        };
+
+        Ok((manager, event_rx, menu_rx, profile_rx))
     }
 
-    /// Show the flyout menu
-    fn show_flyout(&mut self, to_gui_tx: &Sender<crate::ipc::TrayToGui>) -> Result<()> {
+    /// Create a new tray icon (legacy, for thread-based usage)
+    pub fn new(profiles: Vec<Profile>, active_profile: Option<String>) -> Result<Self> {
+        let (manager, _, _, _) = Self::new_with_channels(profiles, active_profile)?;
+        Ok(manager)
+    }
+
+    /// Show the flyout menu (main-thread version, uses internal profile_tx)
+    pub fn show_flyout(&mut self) -> Result<()> {
         println!("[FLYOUT] Attempting to show flyout menu");
         
         // Close existing flyout if any
         self.flyout = None;
 
         // Get tray icon rect for positioning
-        let tray_rect = if let Some(rect) = self.tray_icon.rect() {
+        let _tray_rect = if let Some(rect) = self.tray_icon.rect() {
             println!("[FLYOUT] Tray icon position: {:?}, size: {:?}", rect.position, rect.size);
             windows::Win32::Foundation::RECT {
                 left: rect.position.x as i32,
@@ -132,7 +198,6 @@ impl TrayFlyoutManager {
             }
         } else {
             println!("[FLYOUT] Warning: Could not get tray rect, using screen corner");
-            // Fallback to lower-right corner
             use windows::Win32::UI::WindowsAndMessaging::*;
             unsafe {
                 let screen_width = GetSystemMetrics(SM_CXSCREEN);
@@ -146,13 +211,17 @@ impl TrayFlyoutManager {
             }
         };
 
+        // Create IPC sender that forwards to profile_tx
+        let profile_tx = self.profile_tx.clone();
+        let ipc_sender = create_profile_forwarder(profile_tx);
+
         // Create and show flyout
         println!("[FLYOUT] Creating flyout window with {} profiles", self.profiles.len());
         let flyout = FlyoutWindow::new(
-            tray_rect,
+            _tray_rect,
             self.profiles.clone(),
             self.active_profile.clone(),
-            to_gui_tx.clone(),
+            ipc_sender,
         )?;
 
         println!("[FLYOUT] Showing flyout window");
@@ -163,8 +232,13 @@ impl TrayFlyoutManager {
         anyhow::Ok(())
     }
 
+    /// Check if flyout is currently visible
+    pub fn is_flyout_visible(&self) -> bool {
+        self.flyout.is_some()
+    }
+
     /// Hide the flyout menu
-    fn hide_flyout(&mut self) {
+    pub fn hide_flyout(&mut self) {
         self.flyout = None;
     }
 
@@ -300,7 +374,7 @@ pub fn run_tray_flyout_thread(
                             tray.hide_flyout();
                         } else {
                             println!("[TRAY] Showing new flyout");
-                            if let Err(e) = tray.show_flyout(&channels.to_gui) {
+                            if let Err(e) = tray.show_flyout() {
                                 eprintln!("[TRAY] Failed to show flyout: {}", e);
                             }
                         }
