@@ -448,6 +448,7 @@ pub fn run_tray_flyout_thread(
             // Check for messages from GUI
             match channels.from_gui.try_recv() {
                 Ok(msg) => match msg {
+                    GuiToTray::RequestState => {}
                     GuiToTray::ProfilesUpdated(new_profiles) => {
                         println!("[TRAY] Received ProfilesUpdated");
                         tray.update_profiles(new_profiles);

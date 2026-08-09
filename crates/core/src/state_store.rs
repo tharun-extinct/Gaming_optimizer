@@ -10,7 +10,7 @@ use rusqlite::{params, Connection};
 use std::fs;
 use std::path::{Path, PathBuf};
 
-const SCHEMA_VERSION: i64 = 1;
+const SCHEMA_VERSION: i64 = 2;
 
 #[derive(Debug, Clone, Default)]
 pub struct StateSnapshot {
@@ -58,6 +58,27 @@ impl StateStore {
         &self.path
     }
 
+    fn backup_previous_valid(&self) -> Result<()> {
+        self.connection
+            .execute_batch("PRAGMA wal_checkpoint(FULL);")
+            .context("failed to checkpoint state database before backup")?;
+        let backup = self.path.with_extension("previous.db");
+        let temporary = self.path.with_extension("previous.tmp");
+        fs::copy(&self.path, &temporary).with_context(|| {
+            format!(
+                "failed to create temporary state backup {}",
+                temporary.display()
+            )
+        })?;
+        if backup.exists() {
+            fs::remove_file(&backup)
+                .with_context(|| format!("failed to replace backup {}", backup.display()))?;
+        }
+        fs::rename(&temporary, &backup)
+            .with_context(|| format!("failed to publish backup {}", backup.display()))?;
+        Ok(())
+    }
+
     fn migrate_schema(&mut self) -> Result<()> {
         let version: i64 = self
             .connection
@@ -77,6 +98,7 @@ impl StateStore {
                 CREATE TABLE profiles (
                     name TEXT PRIMARY KEY COLLATE NOCASE,
                     profile_json TEXT NOT NULL,
+                    sort_order INTEGER NOT NULL,
                     updated_at_unix_ms INTEGER NOT NULL
                 );
                 CREATE TABLE app_state (
@@ -88,7 +110,18 @@ impl StateStore {
                 );
                 INSERT INTO app_state(singleton, active_profile_name, overlay_visible)
                     VALUES (1, NULL, 0);
-                PRAGMA user_version = 1;
+                PRAGMA user_version = 2;
+                ",
+            )?;
+            transaction.commit()?;
+        }
+        if version == 1 {
+            let transaction = self.connection.transaction()?;
+            transaction.execute_batch(
+                "
+                ALTER TABLE profiles ADD COLUMN sort_order INTEGER NOT NULL DEFAULT 0;
+                UPDATE profiles SET sort_order = rowid - 1;
+                PRAGMA user_version = 2;
                 ",
             )?;
             transaction.commit()?;
@@ -99,7 +132,7 @@ impl StateStore {
     pub fn load_snapshot(&self) -> Result<StateSnapshot> {
         let mut statement = self
             .connection
-            .prepare("SELECT profile_json FROM profiles ORDER BY name COLLATE NOCASE")?;
+            .prepare("SELECT profile_json FROM profiles ORDER BY sort_order")?;
         let rows = statement.query_map([], |row| row.get::<_, String>(0))?;
         let mut profiles = Vec::new();
         for row in rows {
@@ -122,6 +155,7 @@ impl StateStore {
     }
 
     pub fn save_profiles(&mut self, profiles: &[Profile]) -> Result<()> {
+        self.backup_previous_valid()?;
         let transaction = self.connection.transaction()?;
         let active: Option<String> = transaction.query_row(
             "SELECT active_profile_name FROM app_state WHERE singleton = 1",
@@ -134,11 +168,17 @@ impl StateStore {
         )?;
         transaction.execute("DELETE FROM profiles", [])?;
 
-        for profile in profiles {
+        for (sort_order, profile) in profiles.iter().enumerate() {
             let json = serde_json::to_string(profile)?;
             transaction.execute(
-                "INSERT INTO profiles(name, profile_json, updated_at_unix_ms) VALUES (?1, ?2, ?3)",
-                params![profile.name, json, crate::orchestration::now_unix_ms() as i64],
+                "INSERT INTO profiles(name, profile_json, sort_order, updated_at_unix_ms)
+                 VALUES (?1, ?2, ?3, ?4)",
+                params![
+                    profile.name,
+                    json,
+                    sort_order as i64,
+                    crate::orchestration::now_unix_ms() as i64
+                ],
             )?;
         }
 
@@ -170,6 +210,7 @@ impl StateStore {
                 return Err(anyhow!("cannot activate unknown profile '{name}'"));
             }
         }
+        self.backup_previous_valid()?;
         self.connection.execute(
             "UPDATE app_state SET active_profile_name = ?1 WHERE singleton = 1",
             params![active],
@@ -177,12 +218,22 @@ impl StateStore {
         Ok(())
     }
 
+    pub fn set_overlay_visible(&mut self, visible: bool) -> Result<()> {
+        self.backup_previous_valid()?;
+        self.connection.execute(
+            "UPDATE app_state SET overlay_visible = ?1 WHERE singleton = 1",
+            params![visible],
+        )?;
+        Ok(())
+    }
+
     pub fn save_active_profile(&mut self, profile: &Profile) -> Result<()> {
+        self.backup_previous_valid()?;
         let transaction = self.connection.transaction()?;
         let json = serde_json::to_string(profile)?;
         transaction.execute(
-            "INSERT INTO profiles(name, profile_json, updated_at_unix_ms)
-             VALUES (?1, ?2, ?3)
+            "INSERT INTO profiles(name, profile_json, sort_order, updated_at_unix_ms)
+             VALUES (?1, ?2, COALESCE((SELECT MAX(sort_order) + 1 FROM profiles), 0), ?3)
              ON CONFLICT(name) DO UPDATE SET profile_json = excluded.profile_json,
                 updated_at_unix_ms = excluded.updated_at_unix_ms",
             params![profile.name, json, crate::orchestration::now_unix_ms() as i64],
@@ -245,6 +296,8 @@ mod tests {
         let _ = fs::remove_file(path);
         let _ = fs::remove_file(path.with_extension("db-wal"));
         let _ = fs::remove_file(path.with_extension("db-shm"));
+        let _ = fs::remove_file(path.with_extension("previous.db"));
+        let _ = fs::remove_file(path.with_extension("previous.tmp"));
     }
 
     #[test]
@@ -285,6 +338,54 @@ mod tests {
         let path = temporary_database();
         let mut store = StateStore::open(&path).unwrap();
         assert!(store.set_active_profile(Some("Missing")).is_err());
+        drop(store);
+        remove_database(&path);
+    }
+
+    #[test]
+    fn migrates_schema_version_one_without_losing_state() {
+        let path = temporary_database();
+        {
+            let connection = Connection::open(&path).unwrap();
+            connection
+                .execute_batch(
+                    "
+                    PRAGMA foreign_keys = ON;
+                    CREATE TABLE profiles (
+                        name TEXT PRIMARY KEY COLLATE NOCASE,
+                        profile_json TEXT NOT NULL,
+                        updated_at_unix_ms INTEGER NOT NULL
+                    );
+                    CREATE TABLE app_state (
+                        singleton INTEGER PRIMARY KEY CHECK (singleton = 1),
+                        active_profile_name TEXT COLLATE NOCASE NULL,
+                        overlay_visible INTEGER NOT NULL DEFAULT 0,
+                        FOREIGN KEY (active_profile_name) REFERENCES profiles(name)
+                            ON UPDATE CASCADE ON DELETE SET NULL
+                    );
+                    INSERT INTO app_state VALUES (1, NULL, 0);
+                    PRAGMA user_version = 1;
+                    ",
+                )
+                .unwrap();
+            let profile = create_profile("Migrated".into());
+            connection
+                .execute(
+                    "INSERT INTO profiles(name, profile_json, updated_at_unix_ms) VALUES (?1, ?2, 0)",
+                    params![profile.name, serde_json::to_string(&profile).unwrap()],
+                )
+                .unwrap();
+        }
+
+        let store = StateStore::open(&path).unwrap();
+        let snapshot = store.load_snapshot().unwrap();
+        assert_eq!(snapshot.profiles.len(), 1);
+        assert_eq!(snapshot.profiles[0].name, "Migrated");
+        let version: i64 = store
+            .connection
+            .query_row("PRAGMA user_version", [], |row| row.get(0))
+            .unwrap();
+        assert_eq!(version, 2);
         drop(store);
         remove_database(&path);
     }

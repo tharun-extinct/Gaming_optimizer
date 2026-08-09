@@ -730,11 +730,10 @@ impl Application for GameOptimizer {
             Message::IpcStateSnapshot {
                 profiles,
                 active_profile,
-                overlay_visible,
+                overlay_visible: _,
             } => {
                 self.profiles = profiles;
                 self.active_profile_name = active_profile;
-                self.edit_overlay_enabled = overlay_visible;
                 self.selected_profile_index = self.active_profile_name.as_ref().and_then(|name| {
                     self.profiles
                         .iter()

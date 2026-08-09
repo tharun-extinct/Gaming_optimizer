@@ -39,7 +39,7 @@ Protected process names are normalized identically for configuration input and d
 
 ## Failure and recovery
 
-Persistence failures are surfaced and must not silently reset valid state. A schema newer than the binary supports is rejected. Database updates use transactions. Periodic backup and automated recovery from the previous valid database are planned.
+Persistence failures are surfaced and must not silently reset valid state. A schema newer than the binary supports is rejected. Database updates use transactions, and Runner checkpoints/copies the last valid database before each state mutation. Automated recovery from that backup is planned.
 
 IPC failures degrade the affected capability and never authorize a privileged fallback. Duplicate request tracking must be bounded by time and size; the current in-memory unbounded cache is transitional.
 

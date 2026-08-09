@@ -354,7 +354,9 @@ fn handle_settings_message(
             state_store.set_active_profile(active.as_deref())?;
             tray.set_active_profile(active);
         }
-        GuiToTray::OverlayVisibilityChanged(_visible) => {}
+        GuiToTray::OverlayVisibilityChanged(visible) => {
+            state_store.set_overlay_visible(visible)?;
+        }
         GuiToTray::Shutdown => return Ok(true),
         GuiToTray::Orchestration(env) => {
             if !idempotency.check_and_insert(&env.request_id) {

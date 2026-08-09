@@ -8,7 +8,7 @@ Profiles and the last active profile survive restart in Runner-owned SQLite stat
 
 **Status:** Partial
 
-SQLite schema v1, legacy import, transactional profile/activation updates, Runner startup restoration, and Settings state snapshots are implemented. Rust tests were added but cannot be executed in the current environment because Cargo is unavailable.
+SQLite schema v2, the v1→v2 migration, legacy import, transactional profile/activation updates, previous-valid backup, Runner startup restoration, and Settings state snapshots are implemented. Rust tests were added but cannot be executed in the current environment because Cargo is unavailable.
 
 ## Architecture dependencies
 
@@ -42,10 +42,11 @@ Runner is the only process that opens `state.db`. Settings may retain legacy JSO
 - [x] Deleting an active profile clears activation transactionally.
 - [x] An unknown profile cannot become active.
 - [ ] Copy crosshair assets into managed storage.
-- [ ] Add periodic previous-valid-database backup and recovery.
+- [x] Back up the previous valid database before state mutations.
+- [ ] Add automated recovery from the previous-valid backup.
 - [ ] Add versioned portable JSON import/export.
 - [ ] Remove legacy direct JSON writes after the WPF client uses Runner commands.
 
 ## Remaining gaps
 
-Windows integration and migration tests have not run locally. Asset management, backup/recovery, and portable import/export remain planned.
+Windows integration and migration tests have not run locally. Asset management, automated backup recovery, and portable import/export remain planned.
