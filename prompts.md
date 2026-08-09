@@ -31,3 +31,33 @@ Things to remember,
 -The above given structure is only for reference purpose, don't implement as it is (use it as a reference) and stick to our core principles
 
 ---
+
+
+create @mai from design.md
+
+
+I want to come up with list of tech stack for this project and suggest the optimal one (for e.g. Database - Sqlite or json storage)
+
+
+
+
+
+
+
+
+build a ci verfication of compilation for main branch
+
+?
+
+
+
+WPF means Windows Presentation Foundation. It is Microsoft’s Windows desktop UI framework for C#/.NET. The interface is normally defined using XAML, while C# handles UI behavior. In this project, WPF would power only the Settings window—not the Rust optimizer engine.
+
+
+
+Runner starts.
+Open SQLite once and keep the connection available.
+Query app_state.active_profile_id.
+Load that profile, its macros and related settings in one transaction/query.
+Keep the resulting profile in memory.
+Use the in-memory copy during optimization.

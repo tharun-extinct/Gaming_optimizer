@@ -33,29 +33,27 @@ impl KillReport {
 /// Critical Windows processes that cannot be killed
 /// Killing these could crash the system or cause serious instability
 const PROTECTED_PROCESSES: &[&str] = &[
-    "csrss.exe",    // Client Server Runtime
-    "dwm.exe",      // Desktop Window Manager
-    "explorer.exe", // Windows Explorer (shell)
-    "lsass.exe",    // Local Security Authority
-    "services.exe", // Services Control Manager
-    "smss.exe",     // Session Manager
+    "csrss",    // Client Server Runtime
+    "dwm",      // Desktop Window Manager
+    "explorer", // Windows Explorer (shell)
+    "lsass",    // Local Security Authority
+    "services", // Services Control Manager
+    "smss",     // Session Manager
     "system",       // System process
-    "wininit.exe",  // Windows Init
-    "winlogon.exe", // Windows Logon
-    "svchost.exe",  // Service Host (critical services)
+    "wininit",  // Windows Init
+    "winlogon", // Windows Logon
+    "svchost",  // Service Host (critical services)
 ];
 
 /// Check if a process name is in the protected list (case-insensitive)
 fn is_protected(process_name: &str) -> bool {
-    let name_lower = process_name.to_lowercase();
-    PROTECTED_PROCESSES
-        .iter()
-        .any(|protected| protected.to_lowercase() == name_lower)
+    let normalized = normalize_process_name(process_name);
+    PROTECTED_PROCESSES.contains(&normalized.as_str())
 }
 
 /// Normalize process name for matching (case-insensitive, strips .exe if present)
 fn normalize_process_name(name: &str) -> String {
-    let lower = name.to_lowercase();
+    let lower = name.trim().to_ascii_lowercase();
     if lower.ends_with(".exe") {
         lower[..lower.len() - 4].to_string()
     } else {
@@ -96,7 +94,7 @@ pub fn kill_processes(process_names: &[String]) -> KillReport {
         let target_normalized = normalize_process_name(target_name);
 
         // Check if process is protected
-        if is_protected(&target_normalized) || is_protected(target_name) {
+        if is_protected(&target_normalized) {
             report.blocklist_skipped.push(target_name.clone());
             continue;
         }
@@ -169,6 +167,9 @@ mod tests {
         assert!(is_protected("CSRSS.EXE"));
         assert!(is_protected("explorer.exe"));
         assert!(is_protected("Explorer.exe"));
+        assert!(is_protected("csrss"));
+        assert!(is_protected("CSRSS"));
+        assert!(is_protected(" svchost.exe "));
         assert!(!is_protected("notepad.exe"));
         assert!(!is_protected("chrome.exe"));
     }
@@ -177,6 +178,7 @@ mod tests {
     fn test_would_be_protected() {
         assert!(would_be_protected("dwm.exe"));
         assert!(would_be_protected("DWM.exe"));
+        assert!(would_be_protected("dwm"));
         assert!(!would_be_protected("discord.exe"));
     }
 

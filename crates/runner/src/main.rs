@@ -19,6 +19,7 @@ use edge_optimizer_core::{
         OperationResult, RunnerToEngineCommand, RunnerToSettingsEvent, SettingsToRunnerCommand,
     },
     profile::Profile,
+    state_store::StateStore,
     tray_icon::TrayIconManager,
 };
 use std::process::Command;
@@ -101,8 +102,23 @@ fn main() -> Result<()> {
         }
     };
 
-    let app_config = config::load_config();
-    let mut tray = TrayIconManager::new(app_config.active_profile.clone())
+    let mut state_store = StateStore::open_default().context("failed to open Runner state store")?;
+    let legacy_config = config::load_config();
+    let legacy_profiles = config::get_data_directory()
+        .ok()
+        .and_then(|directory| edge_optimizer_core::profile::load_profiles(&directory).ok())
+        .unwrap_or_default();
+    if state_store.import_legacy_if_empty(
+        &legacy_profiles,
+        legacy_config.active_profile.as_deref(),
+        legacy_config.overlay_visible,
+    )? {
+        tracing::info!("migrated legacy JSON state into {}", state_store.path().display());
+    }
+    let startup_state = state_store
+        .load_snapshot()
+        .context("failed to load startup state")?;
+    let mut tray = TrayIconManager::new(startup_state.active_profile.clone())
         .context("failed to create tray icon manager")?;
 
     let pipe_server = NamedPipeServer::new().context("failed to create named pipe server")?;
@@ -198,6 +214,7 @@ fn main() -> Result<()> {
                         &mut idempotency,
                         &mut overlay_handle,
                         &mut tray,
+                        &mut state_store,
                     )?;
                 }
                 Ok(None) => {}
@@ -316,10 +333,25 @@ fn handle_settings_message(
     idempotency: &mut IdempotencyCache,
     overlay_handle: &mut Option<OverlayHandle>,
     tray: &mut TrayIconManager,
+    state_store: &mut StateStore,
 ) -> Result<bool> {
     match msg {
-        GuiToTray::ProfilesUpdated(_profiles) => {}
+        GuiToTray::RequestState => {
+            let snapshot = state_store.load_snapshot()?;
+            if let Err(error) = pipe_server.send(&TrayToGui::StateSnapshot {
+                profiles: snapshot.profiles,
+                active_profile: snapshot.active_profile,
+                overlay_visible: snapshot.overlay_visible,
+            }) {
+                tracing::warn!("failed to send state snapshot: {}", error);
+                *settings_connected = false;
+            }
+        }
+        GuiToTray::ProfilesUpdated(profiles) => {
+            state_store.save_profiles(&profiles)?;
+        }
         GuiToTray::ActiveProfileChanged(active) => {
+            state_store.set_active_profile(active.as_deref())?;
             tray.set_active_profile(active);
         }
         GuiToTray::OverlayVisibilityChanged(_visible) => {}
@@ -342,6 +374,8 @@ fn handle_settings_message(
                 settings_connected,
                 engine_state,
                 overlay_handle,
+                tray,
+                state_store,
             )?;
         }
     }
@@ -354,6 +388,8 @@ fn process_orchestration_command(
     settings_connected: &mut bool,
     engine_state: &mut EngineState,
     overlay_handle: &mut Option<OverlayHandle>,
+    tray: &mut TrayIconManager,
+    state_store: &mut StateStore,
 ) -> Result<()> {
     match env.payload {
         SettingsToRunnerCommand::ActivateProfile { profile, .. }
@@ -364,8 +400,11 @@ fn process_orchestration_command(
                 engine_state,
                 EngineState::Starting,
             );
+            let profile_to_persist = profile.clone();
             let event = optimize_profile(env.request_id, profile, overlay_handle);
             if matches!(event, RunnerToSettingsEvent::OptimizationResult(ref r) if r.success) {
+                state_store.save_active_profile(&profile_to_persist)?;
+                tray.set_active_profile(Some(profile_to_persist.name.clone()));
                 set_engine_state(
                     pipe_server,
                     settings_connected,

@@ -104,6 +104,11 @@ pub enum Message {
     IpcHideFlyout,
     IpcBringToFront,
     IpcExit,
+    IpcStateSnapshot {
+        profiles: Vec<Profile>,
+        active_profile: Option<String>,
+        overlay_visible: bool,
+    },
     RunnerEvent(RunnerToSettingsEvent),
     RequestCleanup(CleanupKind),
 
@@ -179,6 +184,15 @@ fn process_ipc_messages() -> Option<Message> {
                     TrayToGui::Exit => Some(Message::IpcExit),
                     TrayToGui::ActivateProfile(name) => Some(Message::FlyoutProfileSelected(name)),
                     TrayToGui::OpenSettings => Some(Message::IpcBringToFront),
+                    TrayToGui::StateSnapshot {
+                        profiles,
+                        active_profile,
+                        overlay_visible,
+                    } => Some(Message::IpcStateSnapshot {
+                        profiles,
+                        active_profile,
+                        overlay_visible,
+                    }),
                     TrayToGui::OrchestrationEvent(env) => Some(Message::RunnerEvent(env.payload)),
                     _ => None,
                 };
@@ -380,13 +394,13 @@ impl GameOptimizer {
     fn notify_runner_profile_changed(&mut self) {
         if let Some(ref client) = self.ipc_client {
             if let Ok(client) = client.lock() {
-                let active_msg = GuiToTray::ActiveProfileChanged(self.active_profile_name.clone());
-                if let Err(e) = client.send(&active_msg) {
-                    eprintln!("[GUI] Failed to notify Runner of profile change: {}", e);
-                }
                 let profiles_msg = GuiToTray::ProfilesUpdated(self.profiles.clone());
                 if let Err(e) = client.send(&profiles_msg) {
                     eprintln!("[GUI] Failed to notify Runner of profiles update: {}", e);
+                }
+                let active_msg = GuiToTray::ActiveProfileChanged(self.active_profile_name.clone());
+                if let Err(e) = client.send(&active_msg) {
+                    eprintln!("[GUI] Failed to notify Runner of profile change: {}", e);
                 }
             }
         }
@@ -663,6 +677,7 @@ impl Application for GameOptimizer {
                             macros: self.macro_editor_state.macros.clone(),
                         };
                         self.save_profiles_to_disk();
+                        self.notify_runner_profile_changed();
                         self.status_message = "✅ Macros saved".to_string();
                     }
                 } else {
@@ -674,11 +689,13 @@ impl Application for GameOptimizer {
                 if self.ipc_client.is_none() {
                     match NamedPipeClient::try_connect() {
                         Ok(Some(client)) => {
+                            if let Err(e) = client.send(&GuiToTray::RequestState) {
+                                eprintln!("[GUI] Failed to request Runner state: {}", e);
+                            }
                             let arc = Arc::new(Mutex::new(client));
                             start_ipc_listener(arc.clone());
                             self.ipc_client = Some(arc);
                             self.status_message = "Runner connected".to_string();
-                            self.notify_runner_profile_changed();
                         }
                         Ok(None) => {}
                         Err(e) => {
@@ -708,6 +725,28 @@ impl Application for GameOptimizer {
             Message::IpcExit => {
                 // Clean exit
                 std::process::exit(0);
+            }
+
+            Message::IpcStateSnapshot {
+                profiles,
+                active_profile,
+                overlay_visible,
+            } => {
+                self.profiles = profiles;
+                self.active_profile_name = active_profile;
+                self.edit_overlay_enabled = overlay_visible;
+                self.selected_profile_index = self.active_profile_name.as_ref().and_then(|name| {
+                    self.profiles
+                        .iter()
+                        .position(|profile| profile.name.eq_ignore_ascii_case(name))
+                });
+                if let Some(index) = self.selected_profile_index {
+                    self.load_profile_to_edit(index);
+                }
+                self.status_message = match self.active_profile_name.as_deref() {
+                    Some(name) => format!("Restored active profile: {name}"),
+                    None => format!("Loaded {} profiles", self.profiles.len()),
+                };
             }
 
             Message::RunnerEvent(event) => match event {
@@ -1863,6 +1902,11 @@ pub fn run_with_ipc(
     println!("[GUI] Starting GUI with IPC support...");
 
     // Wrap IPC client in Arc<Mutex> for thread-safe sharing
+    if let Some(ref client) = ipc_client {
+        if let Err(e) = client.send(&GuiToTray::RequestState) {
+            eprintln!("[GUI] Failed to request initial Runner state: {}", e);
+        }
+    }
     let ipc_arc = ipc_client.map(|c| Arc::new(Mutex::new(c)));
 
     // If we have an IPC client, start a listener thread

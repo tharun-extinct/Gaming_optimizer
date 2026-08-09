@@ -21,6 +21,8 @@ pub const MACRO_PIPE_NAME: &str = r"\\.\pipe\EdgeOptimizerMacroIPC";
 /// Messages from Settings to Runner
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum GuiToTray {
+    /// Request the authoritative state snapshot from Runner.
+    RequestState,
     /// Update profiles list
     ProfilesUpdated(Vec<Profile>),
     /// Active profile changed
@@ -36,6 +38,12 @@ pub enum GuiToTray {
 /// Messages from Runner to Settings
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum TrayToGui {
+    /// Authoritative state loaded from Runner's SQLite database.
+    StateSnapshot {
+        profiles: Vec<Profile>,
+        active_profile: Option<String>,
+        overlay_visible: bool,
+    },
     /// User selected a profile from tray
     ActivateProfile(String),
     /// User deactivated profile from tray

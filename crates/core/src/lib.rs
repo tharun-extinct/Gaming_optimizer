@@ -20,6 +20,7 @@ pub mod macro_config;
 pub mod orchestration;
 pub mod process;
 pub mod profile;
+pub mod state_store;
 pub mod tray_flyout; // Legacy, may be removed
 pub mod tray_icon; // New minimal tray manager for Runner
 
