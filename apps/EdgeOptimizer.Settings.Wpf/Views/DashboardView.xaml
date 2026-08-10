@@ -29,19 +29,19 @@
                 <Border Grid.Column="2" Style="{StaticResource CardBorder}" Padding="18">
                     <StackPanel>
                         <TextBlock Text="Apps selected" Style="{StaticResource MutedText}"/>
-                        <TextBlock Text="3" FontSize="22" FontWeight="SemiBold" Margin="0,5,0,0"/>
+                        <TextBlock Text="{Binding SelectedAppCount}" FontSize="22" FontWeight="SemiBold" Margin="0,5,0,0"/>
                     </StackPanel>
                 </Border>
                 <Border Grid.Column="4" Style="{StaticResource CardBorder}" Padding="18">
                     <StackPanel>
                         <TextBlock Text="Crosshair" Style="{StaticResource MutedText}"/>
-                        <TextBlock Text="Enabled" Foreground="{StaticResource SuccessBrush}" FontSize="22" FontWeight="SemiBold" Margin="0,5,0,0"/>
+                        <TextBlock Text="{Binding CrosshairStatus}" Foreground="{StaticResource SuccessBrush}" FontSize="22" FontWeight="SemiBold" Margin="0,5,0,0"/>
                     </StackPanel>
                 </Border>
                 <Border Grid.Column="6" Style="{StaticResource CardBorder}" Padding="18">
                     <StackPanel>
                         <TextBlock Text="Macro trigger" Style="{StaticResource MutedText}"/>
-                        <TextBlock Text="Ctrl + F8" FontSize="22" FontWeight="SemiBold" Margin="0,5,0,0"/>
+                        <TextBlock Text="{Binding MacroShortcut}" FontSize="22" FontWeight="SemiBold" Margin="0,5,0,0"/>
                     </StackPanel>
                 </Border>
             </Grid>
@@ -70,7 +70,7 @@
                                     HorizontalAlignment="Center" VerticalAlignment="Center">
                                 <StackPanel VerticalAlignment="Center">
                                     <TextBlock Text="✓" Foreground="{StaticResource SuccessBrush}" FontSize="32" HorizontalAlignment="Center"/>
-                                    <TextBlock Text="Ready" Foreground="{StaticResource SuccessBrush}" FontSize="24" FontWeight="SemiBold" HorizontalAlignment="Center"/>
+                                    <TextBlock Text="{Binding ReadinessLabel}" Foreground="{StaticResource SuccessBrush}" FontSize="24" FontWeight="SemiBold" HorizontalAlignment="Center"/>
                                 </StackPanel>
                             </Border>
                             <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="16,0,0,0">
@@ -145,9 +145,9 @@
                                     <ColumnDefinition Width="10"/>
                                     <ColumnDefinition Width="*"/>
                                 </Grid.ColumnDefinitions>
-                                <Button Content="Open crosshair" Style="{StaticResource SecondaryButton}" Tag="Crosshair" Click="QuickAction_Click"/>
-                                <Button Grid.Column="2" Content="Edit macro" Style="{StaticResource SecondaryButton}" Tag="Macros" Click="QuickAction_Click"/>
-                                <Button Grid.Column="4" Content="Run cleanup" Style="{StaticResource SecondaryButton}" Tag="SystemTweaks" Click="QuickAction_Click"/>
+                                <Button Content="Open crosshair" Style="{StaticResource SecondaryButton}" Command="{Binding NavigateCommand}" CommandParameter="Crosshair" AutomationProperties.Name="Open crosshair"/>
+                                <Button Grid.Column="2" Content="Edit macro" Style="{StaticResource SecondaryButton}" Command="{Binding NavigateCommand}" CommandParameter="Macros" AutomationProperties.Name="Edit macro"/>
+                                <Button Grid.Column="4" Content="Run cleanup" Style="{StaticResource SecondaryButton}" Command="{Binding NavigateCommand}" CommandParameter="SystemTweaks" AutomationProperties.Name="Open system tweaks"/>
                             </Grid>
                         </StackPanel>
                     </Border>
@@ -169,7 +169,7 @@
                         <TextBlock Text="  •  " Style="{StaticResource MutedText}"/>
                         <TextBlock Text="2 cleanup actions"/>
                     </StackPanel>
-                    <Button Grid.Column="2" Content="System tweaks  →" Style="{StaticResource AccentOutlineButton}" Tag="SystemTweaks" Click="QuickAction_Click"/>
+                    <Button Grid.Column="2" Content="System tweaks" Style="{StaticResource AccentOutlineButton}" Command="{Binding NavigateCommand}" CommandParameter="SystemTweaks" AutomationProperties.Name="System tweaks"/>
                 </Grid>
             </Border>
         </Grid>

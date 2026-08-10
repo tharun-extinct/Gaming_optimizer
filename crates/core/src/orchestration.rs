@@ -226,6 +226,7 @@ mod tests {
 
     #[test]
     fn request_ids_are_unique_enough() {
+        // Verifies sequential requests receive distinct correlation identifiers.
         let a = next_request_id("test");
         let b = next_request_id("test");
         assert_ne!(a, b);
@@ -233,8 +234,64 @@ mod tests {
 
     #[test]
     fn idempotency_cache_detects_duplicates() {
+        // Verifies duplicate request identifiers are rejected without executing work.
         let mut cache = IdempotencyCache::default();
         assert!(cache.check_and_insert("req-1"));
         assert!(!cache.check_and_insert("req-1"));
+    }
+
+    #[test]
+    fn response_preserves_request_and_protocol_version() {
+        // Verifies responses retain the caller's correlation ID and protocol version.
+        let request = Envelope::with_request_id(
+            "settings",
+            AuthContext::InteractiveUser,
+            "request-42",
+            SettingsToRunnerCommand::OpenSettings,
+        );
+        let response = request.respond("runner", AuthContext::RunnerService, EngineState::Ready);
+        assert_eq!(response.request_id, "request-42");
+        assert_eq!(response.protocol_version, PROTOCOL_VERSION);
+    }
+
+    #[test]
+    fn operation_result_maps_all_kill_report_categories() {
+        // Verifies safe fixture results map into the orchestration result without terminating a process.
+        let report = KillReport {
+            killed: vec!["closed.exe".into()],
+            failed: vec!["failed.exe".into()],
+            not_found: vec!["missing.exe".into()],
+            blocklist_skipped: vec!["protected.exe".into()],
+        };
+        let result = OperationResult::from_kill_report("request-1".into(), report);
+        assert!(!result.success);
+        assert_eq!(result.killed, ["closed.exe"]);
+        assert_eq!(result.failed, ["failed.exe"]);
+        assert_eq!(result.not_found, ["missing.exe"]);
+        assert_eq!(result.skipped, ["protected.exe"]);
+    }
+
+    #[test]
+    fn transitional_bincode_command_round_trips() {
+        // Verifies the current Rust-only wire representation remains deterministic during migration.
+        let command = RunnerToEngineCommand::RunCleanup {
+            cleanup_kind: CleanupKind::RecycleBin,
+        };
+        let encoded = bincode::serialize(&command).unwrap();
+        let decoded: RunnerToEngineCommand = bincode::deserialize(&encoded).unwrap();
+        assert!(matches!(
+            decoded,
+            RunnerToEngineCommand::RunCleanup {
+                cleanup_kind: CleanupKind::RecycleBin
+            }
+        ));
+    }
+
+    #[test]
+    fn auth_context_is_only_serialized_claim_data() {
+        // Verifies AuthContext round-trips as message data without conferring authorization behavior.
+        let encoded = bincode::serialize(&AuthContext::RunnerService).unwrap();
+        let decoded: AuthContext = bincode::deserialize(&encoded).unwrap();
+        assert_eq!(decoded, AuthContext::RunnerService);
     }
 }

@@ -149,6 +149,7 @@ mod tests {
 
     #[test]
     fn test_create_profile() {
+        // Verifies a new profile receives safe crosshair, process, fan, and macro defaults.
         let profile = create_profile("Test Profile".to_string());
         assert_eq!(profile.name, "Test Profile");
         assert!(profile.processes_to_kill.is_empty());
@@ -160,6 +161,7 @@ mod tests {
 
     #[test]
     fn test_validate_name_length() {
+        // Verifies profile names enforce the documented one-to-fifty-character boundary.
         let mut profile = create_profile("Valid".to_string());
         assert!(profile.validate().is_ok());
 
@@ -172,6 +174,7 @@ mod tests {
 
     #[test]
     fn test_validate_offsets() {
+        // Verifies crosshair offsets accept boundary values and reject out-of-range coordinates.
         let mut profile = create_profile("Test".to_string());
 
         profile.crosshair_x_offset = -500;
@@ -190,6 +193,7 @@ mod tests {
 
     #[test]
     fn test_is_profile_name_unique() {
+        // Verifies profile names are unique case-insensitively while allowing the edited profile itself.
         let profiles = vec![
             create_profile("Profile 1".to_string()),
             create_profile("Profile 2".to_string()),

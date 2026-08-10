@@ -272,6 +272,7 @@ mod tests {
 
     #[test]
     fn test_macro_shortcut_display() {
+        // Verifies shortcut modifiers are rendered in a stable user-facing order.
         let shortcut = MacroShortcut {
             ctrl: true,
             alt: false,
@@ -284,6 +285,7 @@ mod tests {
 
     #[test]
     fn test_macro_action_display() {
+        // Verifies a key action includes its key and delay in the display label.
         let action = MacroAction::KeyPress {
             key: "A".to_string(),
             delay_ms: 10,
@@ -293,6 +295,7 @@ mod tests {
 
     #[test]
     fn test_macro_validation() {
+        // Verifies empty macros are rejected and macros with an action are accepted.
         let mut macro_def = MacroDefinition::new("Test".to_string());
         assert!(macro_def.validate().is_err()); // No actions
 
@@ -301,5 +304,14 @@ mod tests {
             delay_ms: 0,
         });
         assert!(macro_def.validate().is_ok());
+    }
+
+    #[test]
+    fn macro_names_are_unique_case_insensitively() {
+        // Verifies macro names cannot collide through character casing differences.
+        let mut config = MacroConfig::default();
+        config.macros.push(MacroDefinition::new("Build".to_string()));
+        assert!(!config.is_name_unique("build", None));
+        assert!(config.is_name_unique("Heal", None));
     }
 }

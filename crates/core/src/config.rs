@@ -109,17 +109,22 @@ mod tests {
 
     #[test]
     fn test_default_config() {
+        // Verifies a new configuration starts with no active profile or overlay.
         let config = AppConfig::default();
         assert_eq!(config.active_profile, None);
         assert_eq!(config.overlay_visible, false);
     }
 
     #[test]
-    fn test_get_data_directory() {
-        let result = get_data_directory();
-        assert!(result.is_ok());
-
-        let path = result.unwrap();
-        assert!(path.to_string_lossy().contains("GamingOptimizer"));
+    fn test_config_serialization_round_trip() {
+        // Verifies configuration state can be serialized and restored without using personal data paths.
+        let config = AppConfig {
+            active_profile: Some("Gaming".to_string()),
+            overlay_visible: true,
+        };
+        let json = serde_json::to_string(&config).unwrap();
+        let restored: AppConfig = serde_json::from_str(&json).unwrap();
+        assert_eq!(restored.active_profile.as_deref(), Some("Gaming"));
+        assert!(restored.overlay_visible);
     }
 }

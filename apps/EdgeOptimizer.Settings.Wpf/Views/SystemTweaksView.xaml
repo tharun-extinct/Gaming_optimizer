@@ -53,7 +53,7 @@
                                 <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
                             <TextBox Text="{Binding ProcessFilter, UpdateSourceTrigger=PropertyChanged}" ToolTip="Search running apps"/>
-                            <Button Grid.Column="2" Content="↻" Style="{StaticResource IconButton}" Click="Refresh_Click"/>
+                            <Button Grid.Column="2" Content="↻" Style="{StaticResource IconButton}" Command="{Binding RefreshCommand}" AutomationProperties.Name="Refresh process preview"/>
                             <Border Grid.Column="4" Style="{StaticResource InsetBorder}" Padding="12,8">
                                 <TextBlock Text="{Binding SelectionSummary}" Foreground="{StaticResource AccentBrush}"/>
                             </Border>
@@ -94,7 +94,7 @@
                                                         <ColumnDefinition Width="90"/>
                                                         <ColumnDefinition Width="110"/>
                                                     </Grid.ColumnDefinitions>
-                                                    <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay}" Click="ProcessSelection_Click"/>
+                                                    <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay}" AutomationProperties.Name="Select process"/>
                                                     <TextBlock Grid.Column="1" Text="{Binding Name}"/>
                                                     <TextBlock Grid.Column="2" Text="{Binding Cpu}" Style="{StaticResource MutedText}"/>
                                                     <TextBlock Grid.Column="3" Text="{Binding Memory}" Style="{StaticResource MutedText}"/>
@@ -158,7 +158,7 @@
                     <StackPanel>
                         <TextBlock Text="Safety" Style="{StaticResource SectionTitleText}"/>
                         <TextBlock Text="Protected Windows processes are always excluded" Style="{StaticResource MutedText}" Margin="0,8,0,15"/>
-                        <Button Content="View protected list  →" Style="{StaticResource AccentOutlineButton}" HorizontalAlignment="Left" Click="ProtectedList_Click"/>
+                        <Button Content="View protected list" Style="{StaticResource AccentOutlineButton}" HorizontalAlignment="Left" Command="{Binding ProtectedListCommand}"/>
                     </StackPanel>
                 </Border>
 
@@ -175,9 +175,9 @@
 
         <Border Grid.Row="1" Style="{StaticResource CardBorder}" Margin="0,14,0,0" Padding="20,14">
             <Grid>
-                <Button Content="Restore defaults" Style="{StaticResource SecondaryButton}" HorizontalAlignment="Left" Click="RestoreDefaults_Click"/>
+                <Button Content="Restore defaults" Style="{StaticResource SecondaryButton}" HorizontalAlignment="Left" Command="{Binding RestoreDefaultsCommand}"/>
                 <TextBlock Text="{Binding FeedbackText}" Style="{StaticResource MutedText}" HorizontalAlignment="Center"/>
-                <Button Content="Save changes" Style="{StaticResource PrimaryButton}" HorizontalAlignment="Right" Click="Save_Click"/>
+                <Button Content="Save changes" Style="{StaticResource PrimaryButton}" HorizontalAlignment="Right" Command="{Binding SaveCommand}"/>
             </Grid>
         </Border>
     </Grid>

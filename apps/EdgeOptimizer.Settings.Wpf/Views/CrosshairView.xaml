@@ -55,8 +55,8 @@
                                 <TextBlock Text="PNG  •  100 × 100" Style="{StaticResource MutedText}" FontSize="12" Margin="0,3,0,0"/>
                             </StackPanel>
                             <StackPanel Grid.Column="1" Orientation="Horizontal">
-                                <Button Content="Replace" Style="{StaticResource AccentOutlineButton}" Click="ReplaceImage_Click"/>
-                                <Button Content="Remove" Style="{StaticResource SecondaryButton}" Margin="8,0,0,0" Click="RemoveImage_Click"/>
+                                <Button Content="Replace" Style="{StaticResource AccentOutlineButton}" Command="{Binding ReplaceImageCommand}" AutomationProperties.Name="Replace crosshair image"/>
+                                <Button Content="Remove" Style="{StaticResource SecondaryButton}" Margin="8,0,0,0" Command="{Binding RemoveImageCommand}" AutomationProperties.Name="Remove crosshair image"/>
                             </StackPanel>
                         </Grid>
                     </Border>
@@ -109,15 +109,15 @@
                                     <ColumnDefinition Width="Auto"/>
                                     <ColumnDefinition Width="Auto"/>
                                 </Grid.ColumnDefinitions>
-                                <Button Grid.Row="0" Grid.Column="1" Content="↑" Style="{StaticResource IconButton}" Tag="Up" Click="Move_Click"/>
-                                <Button Grid.Row="1" Grid.Column="0" Content="←" Style="{StaticResource IconButton}" Tag="Left" Click="Move_Click" Margin="0,7,7,7"/>
-                                <Button Grid.Row="1" Grid.Column="1" Content="↻" Style="{StaticResource IconButton}" Tag="Center" Click="Move_Click" Margin="0,7"/>
-                                <Button Grid.Row="1" Grid.Column="2" Content="→" Style="{StaticResource IconButton}" Tag="Right" Click="Move_Click" Margin="7"/>
-                                <Button Grid.Row="2" Grid.Column="1" Content="↓" Style="{StaticResource IconButton}" Tag="Down" Click="Move_Click"/>
+                                <Button Grid.Row="0" Grid.Column="1" Content="↑" Style="{StaticResource IconButton}" Command="{Binding MoveCommand}" CommandParameter="Up" AutomationProperties.Name="Move crosshair up"/>
+                                <Button Grid.Row="1" Grid.Column="0" Content="←" Style="{StaticResource IconButton}" Command="{Binding MoveCommand}" CommandParameter="Left" Margin="0,7,7,7" AutomationProperties.Name="Move crosshair left"/>
+                                <Button Grid.Row="1" Grid.Column="1" Content="↻" Style="{StaticResource IconButton}" Command="{Binding MoveCommand}" CommandParameter="Center" Margin="0,7" AutomationProperties.Name="Center crosshair"/>
+                                <Button Grid.Row="1" Grid.Column="2" Content="→" Style="{StaticResource IconButton}" Command="{Binding MoveCommand}" CommandParameter="Right" Margin="7" AutomationProperties.Name="Move crosshair right"/>
+                                <Button Grid.Row="2" Grid.Column="1" Content="↓" Style="{StaticResource IconButton}" Command="{Binding MoveCommand}" CommandParameter="Down" AutomationProperties.Name="Move crosshair down"/>
                             </Grid>
                         </Grid>
                         <StackPanel Grid.Row="2">
-                            <Button Content="Center on screen" Style="{StaticResource SecondaryButton}" Click="Center_Click"/>
+                            <Button Content="Center on screen" Style="{StaticResource SecondaryButton}" Command="{Binding CenterCommand}"/>
                             <TextBlock Text="{Binding OffsetSummary}" Style="{StaticResource MutedText}" Margin="0,12,0,0"/>
                         </StackPanel>
                     </Grid>
@@ -133,7 +133,7 @@
                                 <ColumnDefinition Width="*"/>
                             </Grid.ColumnDefinitions>
                             <Button Content="Test overlay" Style="{StaticResource AccentOutlineButton}" IsEnabled="False" ToolTip="Runner IPC is required."/>
-                            <Button Grid.Column="2" Content="Hide preview" Style="{StaticResource SecondaryButton}" Click="HidePreview_Click"/>
+                            <Button Grid.Column="2" Content="Hide preview" Style="{StaticResource SecondaryButton}" Command="{Binding HidePreviewCommand}"/>
                         </Grid>
                     </StackPanel>
                 </Border>
@@ -142,9 +142,9 @@
 
         <Border Grid.Row="1" Style="{StaticResource CardBorder}" Margin="0,14,0,0" Padding="20,14">
             <Grid>
-                <Button Content="Reset changes" Style="{StaticResource SecondaryButton}" HorizontalAlignment="Left" Click="Reset_Click"/>
+                <Button Content="Reset changes" Style="{StaticResource SecondaryButton}" HorizontalAlignment="Left" Command="{Binding ResetCommand}"/>
                 <TextBlock Text="{Binding FeedbackText}" Style="{StaticResource MutedText}" HorizontalAlignment="Center"/>
-                <Button Content="Save changes" Style="{StaticResource PrimaryButton}" HorizontalAlignment="Right" Click="Save_Click"/>
+                <Button Content="Save changes" Style="{StaticResource PrimaryButton}" HorizontalAlignment="Right" Command="{Binding SaveCommand}"/>
             </Grid>
         </Border>
     </Grid>

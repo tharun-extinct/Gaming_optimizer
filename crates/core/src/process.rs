@@ -155,14 +155,17 @@ mod tests {
 
     #[test]
     fn test_normalize_process_name() {
+        // Verifies executable names normalize casing, whitespace, and optional extensions consistently.
         assert_eq!(normalize_process_name("notepad.exe"), "notepad");
         assert_eq!(normalize_process_name("Notepad.exe"), "notepad");
         assert_eq!(normalize_process_name("NOTEPAD.EXE"), "notepad");
         assert_eq!(normalize_process_name("notepad"), "notepad");
+        assert_eq!(normalize_process_name("  Notepad.ExE  "), "notepad");
     }
 
     #[test]
     fn test_is_protected() {
+        // Verifies protected Windows names cannot bypass the blocklist through alternate spelling forms.
         assert!(is_protected("csrss.exe"));
         assert!(is_protected("CSRSS.EXE"));
         assert!(is_protected("explorer.exe"));
@@ -176,6 +179,7 @@ mod tests {
 
     #[test]
     fn test_would_be_protected() {
+        // Verifies the advisory safety query mirrors protected-name normalization.
         assert!(would_be_protected("dwm.exe"));
         assert!(would_be_protected("DWM.exe"));
         assert!(would_be_protected("dwm"));
@@ -183,14 +187,8 @@ mod tests {
     }
 
     #[test]
-    fn test_list_processes() {
-        let processes = list_processes();
-        // Should return at least some processes on any system
-        assert!(!processes.is_empty());
-    }
-
-    #[test]
     fn test_kill_report_new() {
+        // Verifies a new result report starts empty without invoking process enumeration or termination.
         let report = KillReport::new();
         assert!(report.killed.is_empty());
         assert!(report.failed.is_empty());
