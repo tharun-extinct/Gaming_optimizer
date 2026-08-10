@@ -1,8 +1,21 @@
 <Application x:Class="EdgeOptimizer.Settings.Wpf.App"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             StartupUri="MainWindow.xaml">
+             xmlns:views="clr-namespace:EdgeOptimizer.Settings.Wpf.Views"
+             xmlns:viewModels="clr-namespace:EdgeOptimizer.Settings.Wpf.ViewModels">
     <Application.Resources>
+        <DataTemplate DataType="{x:Type viewModels:DashboardViewModel}">
+            <views:DashboardView/>
+        </DataTemplate>
+        <DataTemplate DataType="{x:Type viewModels:CrosshairViewModel}">
+            <views:CrosshairView/>
+        </DataTemplate>
+        <DataTemplate DataType="{x:Type viewModels:MacrosViewModel}">
+            <views:MacrosView/>
+        </DataTemplate>
+        <DataTemplate DataType="{x:Type viewModels:SystemTweaksViewModel}">
+            <views:SystemTweaksView/>
+        </DataTemplate>
         <Color x:Key="CanvasColor">#0B0F14</Color>
         <Color x:Key="SidebarColor">#0D141D</Color>
         <Color x:Key="SurfaceColor">#111923</Color>

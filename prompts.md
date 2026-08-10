@@ -86,6 +86,27 @@ Current code and verified tests override stale status prose. Never describe
 planned behavior as implemented. 
 
 
-# Don'ts
+README.md should contains -- necessary things for setting up the project including the commands 
+for copilot-instructions.md and design.md -- follow the structure from this codebase
 
-- Don't read prompts.md
+
+
+
+
+create skill for updating the Readme file, copilot-instructions.md and design and how it's structure -- get these details from this codebase 
+
+---
+
+README.md should contains -- necessary things for setting up the project including the commands 
+
+for copilot-instructions.md and design.md -- c4 follow the structure from this codebase 
+
+create the skill in this location .github/skills/
+
+
+
+
+Use fast logic tests, XAML build validation, and a minimal startup/navigation smoke test without pixel comparisons.
+
+Don't perform any process termination, clean up. Just do logic level test (In test files, briefly describe about that test case)
+

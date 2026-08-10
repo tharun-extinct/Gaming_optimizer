@@ -14,6 +14,7 @@ already implemented.
 
 <system_runtime> Do not run Gradle locally; GitHub Actions is the build and test authority for this repository. </system_runtime>
 
+
 ## context
 
 <context> Use <progressive_disclosure> for feature task and architecture work: </context>
@@ -98,6 +99,7 @@ Do not load every blueprint for an isolated feature task. Read all of `.github/a
 - Preserve unrelated work in the tree. Do not rewrite user changes merely to
   satisfy formatting.
 
+
 ## Build and validation
 
 Run the narrowest useful checks during iteration, then the applicable broader
@@ -156,3 +158,5 @@ run, and call out remaining Windows-only or privileged validation. Mention any
 blueprint status change explicitly.
 
 
+# Don'ts
+- Do not read prompts.md
