@@ -362,3 +362,59 @@ pub struct TrayChannels {
     pub from_gui: Receiver<GuiToTray>,
     pub to_gui: Sender<TrayToGui>,
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::orchestration::{AuthContext, Envelope, SettingsToRunnerCommand};
+    use crate::profile::create_profile;
+
+    #[test]
+    fn settings_state_request_round_trips_without_opening_a_pipe() {
+        // Verifies the transitional state request can be encoded and decoded entirely in memory.
+        let encoded = bincode::serialize(&GuiToTray::RequestState).unwrap();
+        let decoded: GuiToTray = bincode::deserialize(&encoded).unwrap();
+        assert!(matches!(decoded, GuiToTray::RequestState));
+    }
+
+    #[test]
+    fn runner_state_snapshot_round_trips_without_opening_a_pipe() {
+        // Verifies authoritative profile and activation state survive transitional serialization.
+        let message = TrayToGui::StateSnapshot {
+            profiles: vec![create_profile("Gaming".into())],
+            active_profile: Some("Gaming".into()),
+            overlay_visible: true,
+        };
+        let encoded = bincode::serialize(&message).unwrap();
+        let decoded: TrayToGui = bincode::deserialize(&encoded).unwrap();
+        assert!(matches!(
+            decoded,
+            TrayToGui::StateSnapshot {
+                profiles,
+                active_profile: Some(active),
+                overlay_visible: true,
+            } if profiles.len() == 1 && active == "Gaming"
+        ));
+    }
+
+    #[test]
+    fn orchestration_envelope_preserves_command_correlation() {
+        // Verifies a settings command retains its request ID across the current IPC message wrapper.
+        let envelope = Envelope::with_request_id(
+            "settings",
+            AuthContext::InteractiveUser,
+            "request-88",
+            SettingsToRunnerCommand::OpenFlyout,
+        );
+        let encoded = bincode::serialize(&GuiToTray::Orchestration(envelope)).unwrap();
+        let decoded: GuiToTray = bincode::deserialize(&encoded).unwrap();
+        assert!(matches!(
+            decoded,
+            GuiToTray::Orchestration(Envelope {
+                request_id,
+                payload: SettingsToRunnerCommand::OpenFlyout,
+                ..
+            }) if request_id == "request-88"
+        ));
+    }
+}

@@ -112,7 +112,7 @@ mod tests {
         // Verifies a new configuration starts with no active profile or overlay.
         let config = AppConfig::default();
         assert_eq!(config.active_profile, None);
-        assert_eq!(config.overlay_visible, false);
+        assert!(!config.overlay_visible);
     }
 
     #[test]

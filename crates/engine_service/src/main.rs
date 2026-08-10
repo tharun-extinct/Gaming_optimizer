@@ -3,12 +3,13 @@
 // #![windows_subsystem = "windows"]
 
 use anyhow::{Context, Result};
+use edge_optimizer_core::engine_commands::{dispatch_engine_command, EngineOperations};
 use edge_optimizer_core::engine_ipc::EnginePipeServer;
 use edge_optimizer_core::orchestration::{
     AuthContext, CleanupKind, EngineToRunnerEvent, Envelope, IdempotencyCache, OperationResult,
     RunnerToEngineCommand,
 };
-use edge_optimizer_core::process::kill_processes;
+use edge_optimizer_core::process::{kill_processes, KillReport};
 use std::env;
 use std::fs;
 use std::path::PathBuf;
@@ -42,7 +43,7 @@ fn main() -> Result<()> {
                     message: format!("Duplicate request ignored: {}", request.request_id),
                 }
             } else {
-                handle_command(&request)
+                dispatch_engine_command(&request, &mut SystemEngineOperations)
             };
 
             let response =
@@ -56,30 +57,15 @@ fn main() -> Result<()> {
     }
 }
 
-fn handle_command(request: &Envelope<RunnerToEngineCommand>) -> EngineToRunnerEvent {
-    match &request.payload {
-        RunnerToEngineCommand::Ping => EngineToRunnerEvent::Pong,
-        RunnerToEngineCommand::GetCapabilities => EngineToRunnerEvent::Capabilities {
-            cleanup_kinds: vec![CleanupKind::RecycleBin, CleanupKind::BrowserCache],
-            supports_process_kill: true,
-        },
-        RunnerToEngineCommand::KillProcesses { processes } => {
-            let report = kill_processes(processes);
-            EngineToRunnerEvent::Result(OperationResult::from_kill_report(
-                request.request_id.clone(),
-                report,
-            ))
-        }
-        RunnerToEngineCommand::ApplyProfile { profile } => {
-            let report = kill_processes(&profile.processes_to_kill);
-            let mut result = OperationResult::from_kill_report(request.request_id.clone(), report);
-            result.summary = format!("profile={} {}", profile.name, result.summary);
-            EngineToRunnerEvent::Result(result)
-        }
-        RunnerToEngineCommand::RunCleanup { cleanup_kind } => {
-            let result = run_cleanup(request.request_id.clone(), cleanup_kind.clone());
-            EngineToRunnerEvent::Result(result)
-        }
+struct SystemEngineOperations;
+
+impl EngineOperations for SystemEngineOperations {
+    fn kill_processes(&mut self, processes: &[String]) -> KillReport {
+        kill_processes(processes)
+    }
+
+    fn run_cleanup(&mut self, request_id: &str, cleanup_kind: CleanupKind) -> OperationResult {
+        run_cleanup(request_id.to_string(), cleanup_kind)
     }
 }
 

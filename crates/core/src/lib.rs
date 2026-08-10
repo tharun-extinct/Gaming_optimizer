@@ -10,6 +10,7 @@
 pub mod common_apps;
 pub mod config;
 pub mod crosshair_overlay;
+pub mod engine_commands;
 pub mod engine_ipc;
 pub mod flyout;
 pub mod gui;

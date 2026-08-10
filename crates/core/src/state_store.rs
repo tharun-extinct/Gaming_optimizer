@@ -302,6 +302,7 @@ mod tests {
 
     #[test]
     fn persists_and_restores_active_profile() {
+        // Verifies profiles and active identity survive closing and reopening Runner-owned state.
         let path = temporary_database();
         {
             let mut store = StateStore::open(&path).unwrap();
@@ -322,6 +323,7 @@ mod tests {
 
     #[test]
     fn deleting_the_active_profile_clears_activation() {
+        // Verifies removing the active profile transactionally clears its activation reference.
         let path = temporary_database();
         let mut store = StateStore::open(&path).unwrap();
         let gaming = create_profile("Gaming".into());
@@ -335,6 +337,7 @@ mod tests {
 
     #[test]
     fn rejects_unknown_active_profile() {
+        // Verifies referential integrity prevents activation of a profile that does not exist.
         let path = temporary_database();
         let mut store = StateStore::open(&path).unwrap();
         assert!(store.set_active_profile(Some("Missing")).is_err());
@@ -344,6 +347,7 @@ mod tests {
 
     #[test]
     fn migrates_schema_version_one_without_losing_state() {
+        // Verifies the v1-to-v2 migration preserves stored profile data.
         let path = temporary_database();
         {
             let connection = Connection::open(&path).unwrap();
@@ -386,6 +390,69 @@ mod tests {
             .query_row("PRAGMA user_version", [], |row| row.get(0))
             .unwrap();
         assert_eq!(version, 2);
+        drop(store);
+        remove_database(&path);
+    }
+
+    #[test]
+    fn creates_current_schema_for_a_fresh_database() {
+        // Verifies a new state database creates the current supported schema and default application row.
+        let path = temporary_database();
+        let store = StateStore::open(&path).unwrap();
+        let version: i64 = store
+            .connection
+            .query_row("PRAGMA user_version", [], |row| row.get(0))
+            .unwrap();
+        let snapshot = store.load_snapshot().unwrap();
+        assert_eq!(version, SCHEMA_VERSION);
+        assert!(snapshot.profiles.is_empty());
+        assert!(snapshot.active_profile.is_none());
+        assert!(!snapshot.overlay_visible);
+        drop(store);
+        remove_database(&path);
+    }
+
+    #[test]
+    fn rejects_a_schema_newer_than_the_binary() {
+        // Verifies unsupported future schemas fail explicitly instead of resetting valid state.
+        let path = temporary_database();
+        let connection = Connection::open(&path).unwrap();
+        connection.execute_batch("PRAGMA user_version = 99;").unwrap();
+        drop(connection);
+        let error = StateStore::open(&path).err().unwrap().to_string();
+        assert!(error.contains("newer than supported"));
+        remove_database(&path);
+    }
+
+    #[test]
+    fn creates_previous_valid_backup_before_mutation() {
+        // Verifies a state mutation checkpoints and copies the previous valid database first.
+        let path = temporary_database();
+        let mut store = StateStore::open(&path).unwrap();
+        store
+            .save_profiles(&[create_profile("Backed up".into())])
+            .unwrap();
+        assert!(path.with_extension("previous.db").exists());
+        drop(store);
+        remove_database(&path);
+    }
+
+    #[test]
+    fn malformed_profile_json_surfaces_an_error() {
+        // Verifies corrupt profile data is reported and never silently replaced with defaults.
+        let path = temporary_database();
+        let mut store = StateStore::open(&path).unwrap();
+        store
+            .save_profiles(&[create_profile("Corrupt me".into())])
+            .unwrap();
+        store
+            .connection
+            .execute(
+                "UPDATE profiles SET profile_json = 'not-json' WHERE name = 'Corrupt me'",
+                [],
+            )
+            .unwrap();
+        assert!(store.load_snapshot().is_err());
         drop(store);
         remove_database(&path);
     }

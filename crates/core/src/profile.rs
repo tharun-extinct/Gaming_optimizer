@@ -46,10 +46,10 @@ impl Profile {
         }
 
         // Validate X/Y offsets (-500 to +500 pixels)
-        if self.crosshair_x_offset < -500 || self.crosshair_x_offset > 500 {
+        if !(-500..=500).contains(&self.crosshair_x_offset) {
             return Err(anyhow!("X offset must be between -500 and 500 pixels"));
         }
-        if self.crosshair_y_offset < -500 || self.crosshair_y_offset > 500 {
+        if !(-500..=500).contains(&self.crosshair_y_offset) {
             return Err(anyhow!("Y offset must be between -500 and 500 pixels"));
         }
 
@@ -146,6 +146,31 @@ pub fn is_profile_name_unique(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::path::PathBuf;
+    use std::time::{SystemTime, UNIX_EPOCH};
+
+    struct TemporaryDirectory(PathBuf);
+
+    impl TemporaryDirectory {
+        fn new() -> Self {
+            let suffix = SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap()
+                .as_nanos();
+            let path = std::env::temp_dir().join(format!(
+                "edge-optimizer-profile-{}-{suffix}",
+                std::process::id()
+            ));
+            fs::create_dir_all(&path).unwrap();
+            Self(path)
+        }
+    }
+
+    impl Drop for TemporaryDirectory {
+        fn drop(&mut self) {
+            let _ = fs::remove_dir_all(&self.0);
+        }
+    }
 
     #[test]
     fn test_create_profile() {
@@ -156,7 +181,7 @@ mod tests {
         assert_eq!(profile.crosshair_image_path, None);
         assert_eq!(profile.crosshair_x_offset, 0);
         assert_eq!(profile.crosshair_y_offset, 0);
-        assert_eq!(profile.overlay_enabled, true);
+        assert!(profile.overlay_enabled);
     }
 
     #[test]
@@ -203,5 +228,39 @@ mod tests {
         assert!(!is_profile_name_unique(&profiles, "Profile 1", None));
         assert!(!is_profile_name_unique(&profiles, "profile 1", None)); // Case-insensitive
         assert!(is_profile_name_unique(&profiles, "Profile 1", Some(0))); // Exclude self
+    }
+
+    #[test]
+    fn legacy_json_round_trip_uses_only_a_temporary_directory() {
+        // Verifies transitional profile JSON can be saved and loaded without touching personal data.
+        let directory = TemporaryDirectory::new();
+        let profile = create_profile("Portable".into());
+        save_profiles(std::slice::from_ref(&profile), &directory.0).unwrap();
+        let restored = load_profiles(&directory.0).unwrap();
+        assert_eq!(restored.len(), 1);
+        assert_eq!(restored[0].name, "Portable");
+    }
+
+    #[test]
+    fn missing_and_malformed_legacy_json_are_distinguished() {
+        // Verifies a missing legacy file is empty while malformed JSON surfaces an explicit error.
+        let directory = TemporaryDirectory::new();
+        assert!(load_profiles(&directory.0).unwrap().is_empty());
+        fs::write(directory.0.join("profiles.json"), "not-json").unwrap();
+        assert!(load_profiles(&directory.0).is_err());
+    }
+
+    #[test]
+    fn delete_profile_ignores_invalid_indexes() {
+        // Verifies deletion removes only a valid selected index and safely ignores out-of-range input.
+        let mut profiles = vec![
+            create_profile("One".into()),
+            create_profile("Two".into()),
+        ];
+        delete_profile(&mut profiles, 9);
+        assert_eq!(profiles.len(), 2);
+        delete_profile(&mut profiles, 0);
+        assert_eq!(profiles.len(), 1);
+        assert_eq!(profiles[0].name, "Two");
     }
 }

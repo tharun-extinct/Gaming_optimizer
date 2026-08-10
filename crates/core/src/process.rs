@@ -54,11 +54,7 @@ fn is_protected(process_name: &str) -> bool {
 /// Normalize process name for matching (case-insensitive, strips .exe if present)
 fn normalize_process_name(name: &str) -> String {
     let lower = name.trim().to_ascii_lowercase();
-    if lower.ends_with(".exe") {
-        lower[..lower.len() - 4].to_string()
-    } else {
-        lower
-    }
+    lower.strip_suffix(".exe").unwrap_or(&lower).to_string()
 }
 
 /// List all running processes

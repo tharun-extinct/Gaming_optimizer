@@ -14,7 +14,7 @@ public sealed class WpfSmokeTests
     [Fact]
     public void ApplicationResourcesWindowAndViewsLoadOnStaThread()
     {
-        // Verifies WPF resources, the shell, and every feature view construct without showing a window.
+        // Verifies WPF resources, views, window bounds, and automation metadata load without showing a window.
         RunOnSta(() =>
         {
             var application = Application.Current as App ?? new App();
@@ -23,26 +23,11 @@ public sealed class WpfSmokeTests
             var window = new MainWindow { DataContext = viewModel };
             var views = new UserControl[] { new DashboardView(), new CrosshairView(), new MacrosView(), new SystemTweaksView() };
 
-            Assert.Equal(1280, window.MinWidth);
-            Assert.Equal(760, window.MinHeight);
+            Assert.Equal(1280d, window.MinWidth);
+            Assert.Equal(760d, window.MinHeight);
             Assert.All(views, view => Assert.NotNull(view.Content));
             Assert.NotNull(window.FindName("ProfilesList"));
             Assert.NotNull(window.FindName("PageHost"));
-        });
-    }
-
-    [Fact]
-    public void PrimaryShellControlsExposeStableAutomationMetadata()
-    {
-        // Verifies essential navigation and activation controls have accessible names and stable automation IDs.
-        RunOnSta(() =>
-        {
-            var application = Application.Current as App ?? new App();
-            application.InitializeComponent();
-            var window = new MainWindow
-            {
-                DataContext = new MainWindowViewModel(new FakeFilePicker(null), new FakeRunnerClient())
-            };
             window.ApplyTemplate();
 
             var controls = Descendants(window).OfType<FrameworkElement>()
