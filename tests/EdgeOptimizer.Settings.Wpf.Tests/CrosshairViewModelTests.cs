@@ -1,0 +1,64 @@
+using EdgeOptimizer.Settings.Wpf.Models;
+using EdgeOptimizer.Settings.Wpf.ViewModels;
+
+namespace EdgeOptimizer.Settings.Wpf.Tests;
+
+public sealed class CrosshairViewModelTests
+{
+    [Fact]
+    public void DirectionalMovementAndCenterUpdateCoordinates()
+    {
+        // Verifies movement changes one axis at a time and centering resets both axes.
+        var viewModel = CreateViewModel(new FakeFilePicker(null));
+        viewModel.MoveCommand.Execute("Right");
+        viewModel.MoveCommand.Execute("Down");
+        Assert.Equal((1, 1), (viewModel.XOffset, viewModel.YOffset));
+
+        viewModel.CenterCommand.Execute(null);
+        Assert.Equal((0, 0), (viewModel.XOffset, viewModel.YOffset));
+    }
+
+    [Fact]
+    public void CoordinatesAreClampedToSupportedRange()
+    {
+        // Verifies manual offsets cannot exceed the preview's safe coordinate limits.
+        var viewModel = CreateViewModel(new FakeFilePicker(null));
+        viewModel.XOffset = 900;
+        viewModel.YOffset = -900;
+        Assert.Equal((250, -250), (viewModel.XOffset, viewModel.YOffset));
+    }
+
+    [Fact]
+    public void FilePickerCancellationLeavesImageUnchanged()
+    {
+        // Verifies cancelling image selection preserves the current crosshair asset.
+        var viewModel = CreateViewModel(new FakeFilePicker(null));
+        viewModel.ReplaceImageCommand.Execute(null);
+        Assert.Equal("dot-crosshair.png", viewModel.ImageName);
+    }
+
+    [Fact]
+    public void ReplaceRemoveAndResetUpdatePreviewState()
+    {
+        // Verifies image replacement, removal, hiding, and reset mutate only the selected profile preview.
+        var viewModel = CreateViewModel(new FakeFilePicker(@"C:\fixtures\precision.png"));
+        viewModel.ReplaceImageCommand.Execute(null);
+        Assert.Equal("precision.png", viewModel.ImageName);
+
+        viewModel.RemoveImageCommand.Execute(null);
+        Assert.Equal("No image selected", viewModel.ImageName);
+        viewModel.HidePreviewCommand.Execute(null);
+        Assert.False(viewModel.OverlayEnabled);
+
+        viewModel.ResetCommand.Execute(null);
+        Assert.True(viewModel.OverlayEnabled);
+        Assert.Equal("dot-crosshair.png", viewModel.ImageName);
+    }
+
+    private static CrosshairViewModel CreateViewModel(FakeFilePicker picker)
+    {
+        var viewModel = new CrosshairViewModel(picker);
+        viewModel.LoadProfile(new ProfileWorkspace("Test", false));
+        return viewModel;
+    }
+}

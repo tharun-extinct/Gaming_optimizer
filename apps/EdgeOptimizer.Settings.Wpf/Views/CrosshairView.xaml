@@ -1,0 +1,151 @@
+<UserControl x:Class="EdgeOptimizer.Settings.Wpf.Views.CrosshairView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Grid Margin="4,0,4,4">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="1.35*"/>
+                <ColumnDefinition Width="14"/>
+                <ColumnDefinition Width="0.95*"/>
+            </Grid.ColumnDefinitions>
+
+            <Border Style="{StaticResource CardBorder}">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+                    <Grid>
+                        <TextBlock Text="Live preview" Style="{StaticResource SectionTitleText}"/>
+                        <TextBlock Text="16:9" Style="{StaticResource MutedText}" HorizontalAlignment="Right"/>
+                    </Grid>
+                    <Border Grid.Row="1" Background="#080C10" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"
+                            CornerRadius="7" Margin="0,16,0,12" MinHeight="390">
+                        <Grid ClipToBounds="True">
+                            <Line X1="0" Y1="0" X2="0" Y2="10000" Stroke="#2B4150" StrokeThickness="1"
+                                  HorizontalAlignment="Center" StrokeDashArray="2,4"/>
+                            <Line X1="0" Y1="0" X2="10000" Y2="0" Stroke="#2B4150" StrokeThickness="1"
+                                  VerticalAlignment="Center" StrokeDashArray="2,4"/>
+                            <Canvas Width="46" Height="46" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                    RenderTransformOrigin="0.5,0.5">
+                                <Canvas.RenderTransform>
+                                    <TranslateTransform X="{Binding XOffset}" Y="{Binding YOffset}"/>
+                                </Canvas.RenderTransform>
+                                <Rectangle Width="4" Height="15" Fill="{StaticResource AccentBrush}" Canvas.Left="21" Canvas.Top="0"/>
+                                <Rectangle Width="4" Height="15" Fill="{StaticResource AccentBrush}" Canvas.Left="21" Canvas.Top="31"/>
+                                <Rectangle Width="15" Height="4" Fill="{StaticResource AccentBrush}" Canvas.Left="0" Canvas.Top="21"/>
+                                <Rectangle Width="15" Height="4" Fill="{StaticResource AccentBrush}" Canvas.Left="31" Canvas.Top="21"/>
+                                <Ellipse Width="4" Height="4" Fill="{StaticResource AccentBrush}" Canvas.Left="21" Canvas.Top="21"/>
+                            </Canvas>
+                        </Grid>
+                    </Border>
+                    <Border Grid.Row="2" Style="{StaticResource InsetBorder}">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel>
+                                <TextBlock Text="{Binding ImageName}"/>
+                                <TextBlock Text="PNG  •  100 × 100" Style="{StaticResource MutedText}" FontSize="12" Margin="0,3,0,0"/>
+                            </StackPanel>
+                            <StackPanel Grid.Column="1" Orientation="Horizontal">
+                                <Button Content="Replace" Style="{StaticResource AccentOutlineButton}" Command="{Binding ReplaceImageCommand}" AutomationProperties.Name="Replace crosshair image"/>
+                                <Button Content="Remove" Style="{StaticResource SecondaryButton}" Margin="8,0,0,0" Command="{Binding RemoveImageCommand}" AutomationProperties.Name="Remove crosshair image"/>
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+                </Grid>
+            </Border>
+
+            <Grid Grid.Column="2">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+                <Border Style="{StaticResource CardBorder}" Padding="20,17">
+                    <Grid>
+                        <StackPanel>
+                            <TextBlock Text="Overlay enabled" Style="{StaticResource SectionTitleText}"/>
+                            <TextBlock Text="Show this crosshair while the selected profile is active" Style="{StaticResource MutedText}" Margin="0,7,70,0" TextWrapping="Wrap"/>
+                        </StackPanel>
+                        <ToggleButton IsChecked="{Binding OverlayEnabled}" Style="{StaticResource SwitchToggle}" HorizontalAlignment="Right"/>
+                    </Grid>
+                </Border>
+
+                <Border Grid.Row="1" Style="{StaticResource CardBorder}" Margin="0,12">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+                        <TextBlock Text="Position" Style="{StaticResource SectionTitleText}"/>
+                        <Grid Grid.Row="1" Margin="0,18,0,10">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="0.85*"/>
+                                <ColumnDefinition Width="1.15*"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Margin="0,0,14,0">
+                                <TextBlock Text="X" Style="{StaticResource MutedText}" Margin="0,0,0,6"/>
+                                <TextBox Text="{Binding XOffset, UpdateSourceTrigger=PropertyChanged}"/>
+                                <TextBlock Text="Y" Style="{StaticResource MutedText}" Margin="0,14,0,6"/>
+                                <TextBox Text="{Binding YOffset, UpdateSourceTrigger=PropertyChanged}"/>
+                            </StackPanel>
+                            <Grid Grid.Column="1" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <Button Grid.Row="0" Grid.Column="1" Content="↑" Style="{StaticResource IconButton}" Command="{Binding MoveCommand}" CommandParameter="Up" AutomationProperties.Name="Move crosshair up"/>
+                                <Button Grid.Row="1" Grid.Column="0" Content="←" Style="{StaticResource IconButton}" Command="{Binding MoveCommand}" CommandParameter="Left" Margin="0,7,7,7" AutomationProperties.Name="Move crosshair left"/>
+                                <Button Grid.Row="1" Grid.Column="1" Content="↻" Style="{StaticResource IconButton}" Command="{Binding MoveCommand}" CommandParameter="Center" Margin="0,7" AutomationProperties.Name="Center crosshair"/>
+                                <Button Grid.Row="1" Grid.Column="2" Content="→" Style="{StaticResource IconButton}" Command="{Binding MoveCommand}" CommandParameter="Right" Margin="7" AutomationProperties.Name="Move crosshair right"/>
+                                <Button Grid.Row="2" Grid.Column="1" Content="↓" Style="{StaticResource IconButton}" Command="{Binding MoveCommand}" CommandParameter="Down" AutomationProperties.Name="Move crosshair down"/>
+                            </Grid>
+                        </Grid>
+                        <StackPanel Grid.Row="2">
+                            <Button Content="Center on screen" Style="{StaticResource SecondaryButton}" Command="{Binding CenterCommand}"/>
+                            <TextBlock Text="{Binding OffsetSummary}" Style="{StaticResource MutedText}" Margin="0,12,0,0"/>
+                        </StackPanel>
+                    </Grid>
+                </Border>
+
+                <Border Grid.Row="2" Style="{StaticResource CardBorder}" Padding="20,17">
+                    <StackPanel>
+                        <TextBlock Text="Preview controls" Style="{StaticResource SectionTitleText}" Margin="0,0,0,14"/>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="10"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Button Content="Test overlay" Style="{StaticResource AccentOutlineButton}" IsEnabled="False" ToolTip="Runner IPC is required."/>
+                            <Button Grid.Column="2" Content="Hide preview" Style="{StaticResource SecondaryButton}" Command="{Binding HidePreviewCommand}"/>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+            </Grid>
+        </Grid>
+
+        <Border Grid.Row="1" Style="{StaticResource CardBorder}" Margin="0,14,0,0" Padding="20,14">
+            <Grid>
+                <Button Content="Reset changes" Style="{StaticResource SecondaryButton}" HorizontalAlignment="Left" Command="{Binding ResetCommand}"/>
+                <TextBlock Text="{Binding FeedbackText}" Style="{StaticResource MutedText}" HorizontalAlignment="Center"/>
+                <Button Content="Save changes" Style="{StaticResource PrimaryButton}" HorizontalAlignment="Right" Command="{Binding SaveCommand}"/>
+            </Grid>
+        </Border>
+    </Grid>
+</UserControl>

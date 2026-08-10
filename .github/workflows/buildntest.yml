@@ -1,0 +1,107 @@
+name: Build and Test
+
+on:
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: build-test-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  rust:
+    name: Rust logic and coverage
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: edge-optimizer
+          cache-on-failure: true
+
+      - name: Install coverage tool
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-llvm-cov
+
+      - name: Prepare Rust artifacts
+        run: New-Item -ItemType Directory -Force -Path artifacts/rust | Out-Null
+
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+
+      - name: Lint workspace
+        run: cargo clippy --workspace --all-targets -- -D warnings
+
+      - name: Build workspace
+        run: cargo build --workspace --all-targets --verbose
+
+      - name: Test workspace
+        run: |
+          cargo test --workspace --all-targets --verbose 2>&1 | Tee-Object -FilePath artifacts/rust/cargo-test.log
+          $testExitCode = $LASTEXITCODE
+          if ($testExitCode -ne 0) { exit $testExitCode }
+
+      - name: Collect Rust coverage
+        run: cargo llvm-cov --workspace --all-targets --lcov --output-path artifacts/rust/lcov.info
+
+      - name: Upload Rust test and coverage artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rust-test-coverage
+          path: artifacts/rust
+          if-no-files-found: warn
+
+  wpf:
+    name: WPF logic and smoke tests
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install .NET 10 SDK
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('apps/**/*.csproj', 'tests/**/*.csproj') }}
+          restore-keys: |
+            nuget-${{ runner.os }}-
+
+      - name: Restore WPF tests
+        run: dotnet restore tests/EdgeOptimizer.Settings.Wpf.Tests/EdgeOptimizer.Settings.Wpf.Tests.csproj
+
+      - name: Build WPF and tests
+        run: dotnet build tests/EdgeOptimizer.Settings.Wpf.Tests/EdgeOptimizer.Settings.Wpf.Tests.csproj --configuration Release --no-restore
+
+      - name: Run WPF logic and smoke tests
+        run: |
+          New-Item -ItemType Directory -Force -Path artifacts/wpf | Out-Null
+          dotnet test tests/EdgeOptimizer.Settings.Wpf.Tests/EdgeOptimizer.Settings.Wpf.Tests.csproj --configuration Release --no-build --logger "trx;LogFileName=wpf-tests.trx" --results-directory artifacts/wpf --collect "XPlat Code Coverage"
+
+      - name: Upload WPF test and coverage artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wpf-test-coverage
+          path: artifacts/wpf
+          if-no-files-found: warn

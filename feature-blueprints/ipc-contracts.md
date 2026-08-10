@@ -1,0 +1,49 @@
+# IPC contracts
+
+## Outcome
+
+Runner, WPF, workers, and the broker communicate through versioned, bounded, validated cross-language messages with OS-backed peer identity.
+
+## Current verified status
+
+**Status:** Planned
+
+Current named-pipe communication uses Rust Serde/Bincode and fixed buffers. A state snapshot was added to the transitional protocol, but Protobuf, explicit framing, version rejection, and authenticated broker identity are not implemented.
+
+## Architecture dependencies
+
+- [IPC and protocol boundary](../architecture.md#ipc-and-protocol-boundary)
+- [Privilege and identity](../architecture.md#privilege-and-identity)
+
+## Feature-specific implications
+
+The `.proto` schema will be authoritative for wire representation. Serialized auth fields are informational only; peer identity comes from the named-pipe token and ACL.
+
+## Related blueprints
+
+### Required
+
+None.
+
+### Impact checks
+
+- [Settings client](settings-client.md) — C# bindings and client transport.
+- [Privileged broker](privileged-broker.md) — authenticated privileged endpoint.
+
+## Relevant implementation and tests
+
+- `crates/core/src/ipc.rs` — transitional Settings/Runner pipe.
+- `crates/core/src/engine_ipc.rs` — transitional Runner/Engine pipe.
+- `crates/core/src/orchestration.rs` — transitional envelope and operations.
+
+## Acceptance criteria
+
+- [ ] Generate Rust and C# bindings from one Protobuf schema.
+- [ ] Enforce protocol version and maximum frame length before decoding.
+- [ ] Reject unknown or malformed privileged operations.
+- [ ] Verify broker peer identity from Windows, not message claims.
+- [ ] Bound idempotency retention by time and size.
+
+## Remaining gaps
+
+The complete target contract remains to be implemented after persistence stabilizes.
