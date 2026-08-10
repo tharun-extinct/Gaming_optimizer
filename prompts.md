@@ -61,3 +61,8 @@ Query app_state.active_profile_id.
 Load that profile, its macros and related settings in one transaction/query.
 Keep the resulting profile in memory.
 Use the in-memory copy during optimization.
+
+
+
+
+

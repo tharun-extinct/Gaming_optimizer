@@ -1,26 +1,204 @@
 <Window x:Class="EdgeOptimizer.Settings.Wpf.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Edge Optimizer Settings" Height="600" Width="1000"
-        MinHeight="500" MinWidth="900">
-    <Grid Margin="16">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
-            <RowDefinition Height="Auto"/>
-        </Grid.RowDefinitions>
+        xmlns:views="clr-namespace:EdgeOptimizer.Settings.Wpf.Views"
+        Title="Edge Optimizer" Height="940" Width="1500"
+        MinHeight="760" MinWidth="1180" WindowStartupLocation="CenterScreen"
+        Background="{StaticResource CanvasBrush}">
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="284"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
 
-        <TextBlock Text="Edge Optimizer (WPF Settings)" FontSize="22" FontWeight="SemiBold"/>
+        <Border Grid.Column="0" Background="{StaticResource SidebarBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,1,0">
+            <Grid Margin="14,20,14,16">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
 
-        <StackPanel Grid.Row="1" Margin="0,16,0,0">
-            <TextBlock Text="This WPF shell now acts as an orchestration UI client." FontSize="14"/>
-            <TextBlock Margin="0,6,0,0" Text="Optimization and cleanup execution now run in Runner + EngineSvc, not in the UI process." TextWrapping="Wrap"/>
-        </StackPanel>
+                <StackPanel Orientation="Horizontal" Margin="10,4,0,28">
+                    <TextBlock Text="‹" Foreground="{StaticResource AccentBrush}" FontSize="48" FontWeight="Light" Margin="0,-12,7,-8"/>
+                    <TextBlock Text="EDGE OPTIMIZER" FontSize="19" FontWeight="SemiBold"/>
+                </StackPanel>
 
-        <StatusBar Grid.Row="2" Margin="0,12,0,0">
-            <StatusBarItem>
-                <TextBlock Text="Status: Ready for IPC integration"/>
-            </StatusBarItem>
-        </StatusBar>
+                <StackPanel Grid.Row="1">
+                    <RadioButton x:Name="DashboardNav" Style="{StaticResource NavRadioButton}" GroupName="PrimaryNav"
+                                 IsChecked="True" Tag="Dashboard" Click="Navigation_Click">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="D" Width="28" FontWeight="Bold" Foreground="{StaticResource AccentBrush}"/>
+                            <TextBlock Text="Dashboard" FontSize="15"/>
+                        </StackPanel>
+                    </RadioButton>
+                    <RadioButton Style="{StaticResource NavRadioButton}" GroupName="PrimaryNav" Tag="Crosshair" Click="Navigation_Click">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="C" Width="28" FontWeight="Bold" Foreground="{StaticResource AccentBrush}"/>
+                            <TextBlock Text="Crosshair" FontSize="15"/>
+                        </StackPanel>
+                    </RadioButton>
+                    <RadioButton Style="{StaticResource NavRadioButton}" GroupName="PrimaryNav" Tag="Macros" Click="Navigation_Click">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="M" Width="28" FontWeight="Bold" Foreground="{StaticResource AccentBrush}"/>
+                            <TextBlock Text="Macros" FontSize="15"/>
+                        </StackPanel>
+                    </RadioButton>
+                    <RadioButton Style="{StaticResource NavRadioButton}" GroupName="PrimaryNav" Tag="SystemTweaks" Click="Navigation_Click">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="T" Width="28" FontWeight="Bold" Foreground="{StaticResource AccentBrush}"/>
+                            <TextBlock Text="System Tweaks" FontSize="15"/>
+                        </StackPanel>
+                    </RadioButton>
+                </StackPanel>
+
+                <TextBlock Grid.Row="2" Text="YOUR PROFILES" Style="{StaticResource MutedText}" FontSize="12"
+                           Margin="12,30,0,10"/>
+
+                <Grid Grid.Row="3">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+                    <ListBox x:Name="ProfilesList" ItemsSource="{Binding Profiles}" SelectedItem="{Binding SelectedProfile}"
+                             SelectionChanged="ProfilesList_SelectionChanged" Background="Transparent" BorderThickness="0"
+                             ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                        <ListBox.ItemContainerStyle>
+                            <Style TargetType="ListBoxItem">
+                                <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
+                                <Setter Property="Padding" Value="12,11"/>
+                                <Setter Property="Margin" Value="0,2"/>
+                                <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                                <Setter Property="MinHeight" Value="48"/>
+                                <Setter Property="Template">
+                                    <Setter.Value>
+                                        <ControlTemplate TargetType="ListBoxItem">
+                                            <Border x:Name="ItemBorder" Background="Transparent" CornerRadius="7" Padding="{TemplateBinding Padding}">
+                                                <ContentPresenter/>
+                                            </Border>
+                                            <ControlTemplate.Triggers>
+                                                <Trigger Property="IsMouseOver" Value="True">
+                                                    <Setter TargetName="ItemBorder" Property="Background" Value="#142231"/>
+                                                </Trigger>
+                                                <Trigger Property="IsSelected" Value="True">
+                                                    <Setter TargetName="ItemBorder" Property="Background" Value="#172B3E"/>
+                                                    <Setter TargetName="ItemBorder" Property="BorderBrush" Value="{StaticResource AccentBrush}"/>
+                                                    <Setter TargetName="ItemBorder" Property="BorderThickness" Value="3,0,0,0"/>
+                                                </Trigger>
+                                            </ControlTemplate.Triggers>
+                                        </ControlTemplate>
+                                    </Setter.Value>
+                                </Setter>
+                            </Style>
+                        </ListBox.ItemContainerStyle>
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="{Binding Name}" FontSize="14" TextTrimming="CharacterEllipsis"/>
+                                    <StackPanel Grid.Column="1" Orientation="Horizontal" Margin="8,0,0,0" VerticalAlignment="Center">
+                                        <Ellipse Width="8" Height="8" Fill="{StaticResource SuccessBrush}" Margin="0,0,6,0">
+                                            <Ellipse.Style>
+                                                <Style TargetType="Ellipse">
+                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding IsActive}" Value="True">
+                                                            <Setter Property="Visibility" Value="Visible"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Ellipse.Style>
+                                        </Ellipse>
+                                        <TextBlock Text="ACTIVE" Foreground="{StaticResource SuccessBrush}" FontSize="11">
+                                            <TextBlock.Style>
+                                                <Style TargetType="TextBlock">
+                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding IsActive}" Value="True">
+                                                            <Setter Property="Visibility" Value="Visible"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Style>
+                                        </TextBlock>
+                                        <Ellipse Width="7" Height="7" Fill="#6E7D8C">
+                                            <Ellipse.Style>
+                                                <Style TargetType="Ellipse">
+                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding IsActive}" Value="True">
+                                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Ellipse.Style>
+                                        </Ellipse>
+                                    </StackPanel>
+                                </Grid>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                    <Button Grid.Row="1" Content="＋  New profile" Style="{StaticResource AccentOutlineButton}"
+                            Margin="0,10,0,0" Click="NewProfile_Click"/>
+                </Grid>
+
+                <Grid Grid.Row="4" Margin="12,24,8,0">
+                    <StackPanel Orientation="Horizontal">
+                        <Button Content="?" Style="{StaticResource IconButton}" Width="36" Height="36" FontSize="14" ToolTip="Help"/>
+                        <Button Content="i" Style="{StaticResource IconButton}" Width="36" Height="36" FontSize="14" Margin="8,0,0,0" ToolTip="About"/>
+                    </StackPanel>
+                    <TextBlock Text="v1.0.0" Style="{StaticResource MutedText}" HorizontalAlignment="Right" FontSize="12"/>
+                </Grid>
+            </Grid>
+        </Border>
+
+        <Grid Grid.Column="1" Margin="36,26,36,28">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <Grid Margin="4,0,4,22">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <StackPanel>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                        <TextBlock Text="{Binding SelectedProfile.Name}" Foreground="{StaticResource AccentBrush}"/>
+                        <TextBlock Text="  /  " Style="{StaticResource MutedText}"/>
+                        <TextBlock Text="{Binding CurrentPageLabel}"/>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="{Binding CurrentPageTitle}" Style="{StaticResource PageTitleText}"/>
+                        <Border Style="{StaticResource PillBorder}" BorderBrush="#2C8A50" Background="#0E2419" Margin="24,1,0,0">
+                            <StackPanel Orientation="Horizontal">
+                                <Ellipse Width="8" Height="8" Fill="{StaticResource SuccessBrush}" Margin="0,0,7,0"/>
+                                <TextBlock Text="Preview"/>
+                            </StackPanel>
+                        </Border>
+                        <TextBlock Text="UI preview • Runner IPC pending" Style="{StaticResource MutedText}" Margin="22,0,0,0"/>
+                    </StackPanel>
+                </StackPanel>
+                <Button Grid.Column="1" Content="Activate profile" Style="{StaticResource PrimaryButton}"
+                        IsEnabled="False" ToolTip="Runner IPC integration is required before activation."/>
+            </Grid>
+
+            <ContentControl x:Name="PageHost" Grid.Row="1"/>
+
+            <Border Grid.Row="2" Background="#0E151E" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"
+                    CornerRadius="7" Padding="12,8" Margin="4,16,4,0">
+                <Grid>
+                    <TextBlock Text="{Binding StatusMessage}" Style="{StaticResource MutedText}" FontSize="12"/>
+                    <TextBlock Text="Presentation client only" Style="{StaticResource MutedText}" FontSize="12" HorizontalAlignment="Right"/>
+                </Grid>
+            </Border>
+        </Grid>
     </Grid>
 </Window>
