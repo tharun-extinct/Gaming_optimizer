@@ -161,7 +161,7 @@
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
-                    <TextBlock Text="Fortnite profile" Style="{StaticResource SectionTitleText}" Margin="0,0,28,0"/>
+                    <TextBlock Text="{Binding SelectedProfile.Name, StringFormat={}{0} profile}" Style="{StaticResource SectionTitleText}" Margin="0,0,28,0"/>
                     <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
                         <TextBlock Text="3 apps close on activation"/>
                         <TextBlock Text="  •  " Style="{StaticResource MutedText}"/>

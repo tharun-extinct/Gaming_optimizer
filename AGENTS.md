@@ -12,7 +12,11 @@ Treat `architecture.md` and `feature-blueprints/` as the source of truth for
 intended boundaries and migration status. Never present planned behavior as
 already implemented.
 
-## Read before changing code
+<system_runtime> Do not run Gradle locally; GitHub Actions is the build and test authority for this repository. </system_runtime>
+
+## context
+
+<context> Use <progressive_disclosure> for feature task and architecture work: </context>
 
 1. Read `architecture.md` for cross-cutting contracts.
 2. Use the router in `feature-blueprints/README.md` to select the primary
@@ -24,6 +28,13 @@ already implemented.
 
 For changes to a shared contract, read the complete architecture document and
 all affected consumer blueprints.
+
+<progressive_disclosure>
+
+Do not load every blueprint for an isolated feature task. Read all of `.github/architecture.md` and every affected blueprint only for structural, cross-cutting, persistence-wide, coordinate-contract, or ambiguous changes.
+
+<progressive_disclosure>
+
 
 ## Repository map
 
@@ -143,3 +154,5 @@ high risk. For these changes:
 Summarize changed behavior and affected components, list the checks actually
 run, and call out remaining Windows-only or privileged validation. Mention any
 blueprint status change explicitly.
+
+
