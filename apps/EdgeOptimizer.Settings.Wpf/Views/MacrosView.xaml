@@ -1,0 +1,173 @@
+<UserControl x:Class="EdgeOptimizer.Settings.Wpf.Views.MacrosView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Grid Margin="4,0,4,4">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="0.82*" MinWidth="250"/>
+                <ColumnDefinition Width="12"/>
+                <ColumnDefinition Width="1.12*" MinWidth="340"/>
+                <ColumnDefinition Width="12"/>
+                <ColumnDefinition Width="1.04*" MinWidth="330"/>
+            </Grid.ColumnDefinitions>
+
+            <Border Style="{StaticResource CardBorder}">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+                    <TextBlock Text="Macros" Style="{StaticResource SectionTitleText}"/>
+                    <TextBox Grid.Row="1" Text="{Binding MacroSearch, UpdateSourceTrigger=PropertyChanged}" Margin="0,16,0,12"
+                             ToolTip="Search macros"/>
+                    <ListBox Grid.Row="2" ItemsSource="{Binding FilteredMacros}" SelectedItem="{Binding SelectedMacro}"
+                             Background="Transparent" BorderThickness="0" SelectionChanged="MacroList_SelectionChanged">
+                        <ListBox.ItemContainerStyle>
+                            <Style TargetType="ListBoxItem">
+                                <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                                <Setter Property="Margin" Value="0,0,0,8"/>
+                                <Setter Property="Padding" Value="0"/>
+                                <Setter Property="Template">
+                                    <Setter.Value>
+                                        <ControlTemplate TargetType="ListBoxItem">
+                                            <Border x:Name="Root" Background="{StaticResource SurfaceRaisedBrush}" BorderBrush="{StaticResource BorderBrush}"
+                                                    BorderThickness="1" CornerRadius="7" Padding="14">
+                                                <ContentPresenter/>
+                                            </Border>
+                                            <ControlTemplate.Triggers>
+                                                <Trigger Property="IsSelected" Value="True">
+                                                    <Setter TargetName="Root" Property="BorderBrush" Value="{StaticResource AccentBrush}"/>
+                                                    <Setter TargetName="Root" Property="BorderThickness" Value="2"/>
+                                                </Trigger>
+                                                <Trigger Property="IsMouseOver" Value="True">
+                                                    <Setter TargetName="Root" Property="Background" Value="#1C2B39"/>
+                                                </Trigger>
+                                            </ControlTemplate.Triggers>
+                                        </ControlTemplate>
+                                    </Setter.Value>
+                                </Setter>
+                            </Style>
+                        </ListBox.ItemContainerStyle>
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <Grid>
+                                    <TextBlock Text="{Binding Name}" FontSize="15"/>
+                                    <Border HorizontalAlignment="Right" Background="#132B3B" BorderBrush="{StaticResource AccentBrush}"
+                                            BorderThickness="1" CornerRadius="4" Padding="8,4">
+                                        <TextBlock Text="{Binding Shortcut}" Foreground="{StaticResource AccentBrush}" FontSize="12"/>
+                                    </Border>
+                                </Grid>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                    <Button Grid.Row="3" Content="＋  New macro" Style="{StaticResource AccentOutlineButton}" Margin="0,12,0,0" Click="NewMacro_Click"/>
+                </Grid>
+            </Border>
+
+            <Border Grid.Column="2" Style="{StaticResource CardBorder}">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+                    <TextBlock Text="Sequence" Style="{StaticResource SectionTitleText}"/>
+                    <ListBox Grid.Row="1" ItemsSource="{Binding SelectedMacro.Steps}" Background="Transparent" BorderThickness="0"
+                             Margin="0,16,0,10" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                        <ListBox.ItemContainerStyle>
+                            <Style TargetType="ListBoxItem">
+                                <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                                <Setter Property="Margin" Value="0,0,0,8"/>
+                                <Setter Property="Focusable" Value="False"/>
+                            </Style>
+                        </ListBox.ItemContainerStyle>
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <Border Style="{StaticResource InsetBorder}" Padding="12">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="34"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="48"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="⋮⋮" Style="{StaticResource MutedText}"/>
+                                        <TextBlock Grid.Column="1" Text="{Binding Action}" FontSize="15"/>
+                                        <TextBlock Grid.Column="2" Text="{Binding Value}" FontWeight="SemiBold" Margin="10,0,12,0"/>
+                                        <Button Grid.Column="3" Content="×" Style="{StaticResource IconButton}" Width="36" Height="36"
+                                                Click="DeleteStep_Click" Tag="{Binding}"/>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                    <Grid Grid.Row="2">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="10"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Button Content="＋  Add action" Style="{StaticResource AccentOutlineButton}" Click="AddAction_Click"/>
+                        <Button Grid.Column="2" Content="●  Record actions" Style="{StaticResource AccentOutlineButton}"
+                                IsEnabled="False" ToolTip="Macro worker IPC is not connected."/>
+                    </Grid>
+                </Grid>
+            </Border>
+
+            <Border Grid.Column="4" Style="{StaticResource CardBorder}">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+                    <TextBlock Text="Trigger &amp; playback" Style="{StaticResource SectionTitleText}"/>
+                    <StackPanel Grid.Row="1" Margin="0,26,0,22">
+                        <TextBlock Text="Shortcut" Style="{StaticResource MutedText}" Margin="0,0,0,7"/>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="10"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBox Text="{Binding SelectedMacro.Shortcut}" IsReadOnly="True"/>
+                            <Button Grid.Column="2" Content="Change" Style="{StaticResource SecondaryButton}" Click="ChangeShortcut_Click"/>
+                        </Grid>
+                    </StackPanel>
+                    <StackPanel Grid.Row="2">
+                        <TextBlock Text="Playback mode" Style="{StaticResource MutedText}" Margin="0,0,0,8"/>
+                        <RadioButton Content="Run once" IsChecked="True" GroupName="Playback" Style="{StaticResource ChoiceRadioButton}"/>
+                        <StackPanel Orientation="Horizontal">
+                            <RadioButton Content="Repeat" GroupName="Playback" Style="{StaticResource ChoiceRadioButton}"/>
+                            <TextBox Text="3" Width="64" Margin="14,0,10,0"/>
+                            <TextBlock Text="times"/>
+                        </StackPanel>
+                        <RadioButton Content="Repeat while held" GroupName="Playback" Style="{StaticResource ChoiceRadioButton}"/>
+                        <CheckBox Content="Release all keys when stopped" IsChecked="True" Margin="0,24,0,0"/>
+                    </StackPanel>
+                    <Button Grid.Row="3" Content="▷  Test macro" Style="{StaticResource AccentOutlineButton}" IsEnabled="False"
+                            ToolTip="Macro worker IPC is not connected."/>
+                </Grid>
+            </Border>
+        </Grid>
+
+        <Border Grid.Row="1" Style="{StaticResource CardBorder}" Margin="0,14,0,0" Padding="20,14">
+            <Grid>
+                <Button Content="Delete macro" Style="{StaticResource DangerButton}" HorizontalAlignment="Left" Click="DeleteMacro_Click"/>
+                <TextBlock Text="{Binding FeedbackText}" Style="{StaticResource MutedText}" HorizontalAlignment="Center"/>
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                    <Button Content="Duplicate" Style="{StaticResource SecondaryButton}" Click="DuplicateMacro_Click"/>
+                    <Button Content="Save macro" Style="{StaticResource PrimaryButton}" Margin="10,0,0,0" Click="SaveMacro_Click"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+    </Grid>
+</UserControl>

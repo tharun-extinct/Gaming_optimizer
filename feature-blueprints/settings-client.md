@@ -8,7 +8,7 @@ An on-demand, unprivileged WPF client edits profiles and presents Runner state w
 
 **Status:** Partial
 
-The current functional UI is Rust/Iced. The WPF application is a static placeholder; its .NET target migration is staged, but it has no generated IPC client or feature UI.
+The current production-capable UI is Rust/Iced. The WPF application now has a profile-scoped presentation shell and preview implementations of Dashboard, Crosshair, Macros, and System Tweaks. Its editable state is intentionally memory-only, and orchestration actions remain disabled because generated IPC bindings and the Runner client are not implemented.
 
 ## Architecture dependencies
 
@@ -44,4 +44,4 @@ WPF never owns durable state or privileged operations. It requests a snapshot fr
 
 ## Remaining gaps
 
-All functional WPF screens, generated protocol bindings, IPC transport, and CI coverage remain planned.
+Runner hydration, generated protocol bindings, IPC transport, durable commands, CI coverage, and Windows UI automation remain planned. A local .NET 10 SDK build is still required to verify the new presentation screens.

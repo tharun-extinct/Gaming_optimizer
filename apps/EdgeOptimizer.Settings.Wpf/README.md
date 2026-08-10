@@ -1,10 +1,12 @@
 # EdgeOptimizer.Settings.Wpf
 
-Initial WPF (.NET 10 LTS) shell for the Settings UI.
+WPF (.NET 10 LTS) presentation client for Edge Optimizer.
 
 Current state:
 - The Rust Runner + Engine service own optimization and cleanup execution.
-- This WPF app is the future orchestration UI client.
+- The WPF client now includes the shared profile-scoped shell and preview implementations of Dashboard, Crosshair, Macros, and System Tweaks.
+- Preview edits are memory-only. Commands that require orchestration, durable state, process discovery, cleanup, macro playback, or activation stay disabled until Runner IPC is available.
+- The window exits fully when closed and does not open Runner's database or perform privileged operations.
 
 Next integration step:
 - Generate C# protocol types from the shared Protobuf contract.

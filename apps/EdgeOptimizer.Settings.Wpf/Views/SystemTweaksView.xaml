@@ -1,0 +1,184 @@
+<UserControl x:Class="EdgeOptimizer.Settings.Wpf.Views.SystemTweaksView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Grid Margin="4,0,4,4">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="1.05*"/>
+                <ColumnDefinition Width="14"/>
+                <ColumnDefinition Width="0.95*"/>
+            </Grid.ColumnDefinitions>
+
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="12"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+                <Border Style="{StaticResource CardBorder}">
+                    <StackPanel>
+                        <TextBlock Text="Performance policy" Style="{StaticResource SectionTitleText}" Margin="0,0,0,14"/>
+                        <Border Style="{StaticResource InsetBorder}">
+                            <Grid>
+                                <StackPanel>
+                                    <TextBlock Text="Fan speed boost" FontSize="15" FontWeight="SemiBold"/>
+                                    <TextBlock Text="Maximum fan speed while this profile is active" Style="{StaticResource MutedText}" Margin="0,5,80,0"/>
+                                </StackPanel>
+                                <ToggleButton IsChecked="{Binding FanBoostEnabled}" Style="{StaticResource SwitchToggle}" HorizontalAlignment="Right"/>
+                            </Grid>
+                        </Border>
+                    </StackPanel>
+                </Border>
+
+                <Border Grid.Row="2" Style="{StaticResource CardBorder}">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+                        <TextBlock Text="Apps to close" Style="{StaticResource SectionTitleText}"/>
+                        <TextBlock Grid.Row="1" Text="Close non-essential apps when optimization starts" Style="{StaticResource MutedText}" Margin="0,6,0,14"/>
+                        <Grid Grid.Row="2" Margin="0,0,0,12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="10"/>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="10"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBox Text="{Binding ProcessFilter, UpdateSourceTrigger=PropertyChanged}" ToolTip="Search running apps"/>
+                            <Button Grid.Column="2" Content="↻" Style="{StaticResource IconButton}" Click="Refresh_Click"/>
+                            <Border Grid.Column="4" Style="{StaticResource InsetBorder}" Padding="12,8">
+                                <TextBlock Text="{Binding SelectionSummary}" Foreground="{StaticResource AccentBrush}"/>
+                            </Border>
+                        </Grid>
+                        <Border Grid.Row="3" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="7" ClipToBounds="True">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="44"/>
+                                    <RowDefinition Height="*"/>
+                                </Grid.RowDefinitions>
+                                <Grid Background="#111A24">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="52"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="90"/>
+                                        <ColumnDefinition Width="110"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="1" Text="Process" Style="{StaticResource MutedText}"/>
+                                    <TextBlock Grid.Column="2" Text="CPU" Style="{StaticResource MutedText}"/>
+                                    <TextBlock Grid.Column="3" Text="Memory" Style="{StaticResource MutedText}"/>
+                                </Grid>
+                                <ListBox Grid.Row="1" ItemsSource="{Binding FilteredProcesses}" Background="Transparent" BorderThickness="0"
+                                         ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                                    <ListBox.ItemContainerStyle>
+                                        <Style TargetType="ListBoxItem">
+                                            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                                            <Setter Property="Focusable" Value="False"/>
+                                            <Setter Property="Padding" Value="0"/>
+                                        </Style>
+                                    </ListBox.ItemContainerStyle>
+                                    <ListBox.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,1,0,0" Padding="12,10">
+                                                <Grid>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="40"/>
+                                                        <ColumnDefinition Width="*"/>
+                                                        <ColumnDefinition Width="90"/>
+                                                        <ColumnDefinition Width="110"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay}" Click="ProcessSelection_Click"/>
+                                                    <TextBlock Grid.Column="1" Text="{Binding Name}"/>
+                                                    <TextBlock Grid.Column="2" Text="{Binding Cpu}" Style="{StaticResource MutedText}"/>
+                                                    <TextBlock Grid.Column="3" Text="{Binding Memory}" Style="{StaticResource MutedText}"/>
+                                                </Grid>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ListBox.ItemTemplate>
+                                </ListBox>
+                            </Grid>
+                        </Border>
+                    </Grid>
+                </Border>
+            </Grid>
+
+            <Grid Grid.Column="2">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="1.08*"/>
+                    <RowDefinition Height="12"/>
+                    <RowDefinition Height="0.82*"/>
+                    <RowDefinition Height="12"/>
+                    <RowDefinition Height="1*"/>
+                </Grid.RowDefinitions>
+                <Border Style="{StaticResource CardBorder}">
+                    <StackPanel>
+                        <TextBlock Text="Cleanup actions" Style="{StaticResource SectionTitleText}"/>
+                        <TextBlock Text="Runs when the selected profile is activated" Style="{StaticResource MutedText}" Margin="0,5,0,14"/>
+                        <Border Style="{StaticResource InsetBorder}" Margin="0,0,0,9">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <CheckBox IsChecked="{Binding RecycleBinEnabled}" Margin="0,0,12,0"/>
+                                <StackPanel Grid.Column="1">
+                                    <TextBlock Text="Recycle Bin" FontWeight="SemiBold"/>
+                                    <TextBlock Text="Remove deleted files" Style="{StaticResource MutedText}" FontSize="12" Margin="0,3,0,0"/>
+                                </StackPanel>
+                                <Button Grid.Column="2" Content="Run now" Style="{StaticResource SecondaryButton}" IsEnabled="False" ToolTip="Runner IPC is required."/>
+                            </Grid>
+                        </Border>
+                        <Border Style="{StaticResource InsetBorder}">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <CheckBox IsChecked="{Binding BrowserCacheEnabled}" Margin="0,0,12,0"/>
+                                <StackPanel Grid.Column="1">
+                                    <TextBlock Text="Browser Cache" FontWeight="SemiBold"/>
+                                    <TextBlock Text="Clear temporary browser data" Style="{StaticResource MutedText}" FontSize="12" Margin="0,3,0,0"/>
+                                </StackPanel>
+                                <Button Grid.Column="2" Content="Run now" Style="{StaticResource SecondaryButton}" IsEnabled="False" ToolTip="Runner IPC is required."/>
+                            </Grid>
+                        </Border>
+                    </StackPanel>
+                </Border>
+
+                <Border Grid.Row="2" Style="{StaticResource CardBorder}">
+                    <StackPanel>
+                        <TextBlock Text="Safety" Style="{StaticResource SectionTitleText}"/>
+                        <TextBlock Text="Protected Windows processes are always excluded" Style="{StaticResource MutedText}" Margin="0,8,0,15"/>
+                        <Button Content="View protected list  →" Style="{StaticResource AccentOutlineButton}" HorizontalAlignment="Left" Click="ProtectedList_Click"/>
+                    </StackPanel>
+                </Border>
+
+                <Border Grid.Row="4" Style="{StaticResource CardBorder}">
+                    <StackPanel>
+                        <TextBlock Text="Activation plan" Style="{StaticResource SectionTitleText}" Margin="0,0,0,14"/>
+                        <TextBlock Text="✓  Close selected apps" Margin="0,6"/>
+                        <TextBlock Text="✓  Run enabled cleanup actions" Margin="0,6"/>
+                        <TextBlock Text="✓  Apply fan speed policy" Margin="0,6"/>
+                    </StackPanel>
+                </Border>
+            </Grid>
+        </Grid>
+
+        <Border Grid.Row="1" Style="{StaticResource CardBorder}" Margin="0,14,0,0" Padding="20,14">
+            <Grid>
+                <Button Content="Restore defaults" Style="{StaticResource SecondaryButton}" HorizontalAlignment="Left" Click="RestoreDefaults_Click"/>
+                <TextBlock Text="{Binding FeedbackText}" Style="{StaticResource MutedText}" HorizontalAlignment="Center"/>
+                <Button Content="Save changes" Style="{StaticResource PrimaryButton}" HorizontalAlignment="Right" Click="Save_Click"/>
+            </Grid>
+        </Border>
+    </Grid>
+</UserControl>
