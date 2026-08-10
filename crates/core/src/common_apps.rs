@@ -73,3 +73,26 @@ pub fn find_app_by_executable(executable: &str) -> Option<&'static (&'static str
         .iter()
         .find(|(_, exe)| exe.eq_ignore_ascii_case(executable))
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn common_app_projection_preserves_catalog_entries() {
+        // Verifies the UI projection retains each catalog name and executable without system inspection.
+        let apps = get_common_apps();
+        assert_eq!(apps.len(), COMMON_APPS.len());
+        assert!(apps
+            .iter()
+            .any(|app| app.name == "Discord" && app.executable == "Discord.exe"));
+    }
+
+    #[test]
+    fn executable_lookup_is_case_insensitive() {
+        // Verifies a known app can be found regardless of executable-name casing.
+        let app = find_app_by_executable("CHROME.EXE").unwrap();
+        assert_eq!(app.0, "Chrome");
+        assert!(find_app_by_executable("missing.exe").is_none());
+    }
+}

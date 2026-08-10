@@ -27,7 +27,7 @@
 
                 <StackPanel Grid.Row="1">
                     <RadioButton Style="{StaticResource NavRadioButton}" GroupName="PrimaryNav"
-                                 IsChecked="{Binding IsDashboardSelected}" Command="{Binding NavigateCommand}" CommandParameter="Dashboard"
+                                 IsChecked="{Binding IsDashboardSelected, Mode=OneWay}" Command="{Binding NavigateCommand}" CommandParameter="Dashboard"
                                  AutomationProperties.Name="Dashboard navigation" AutomationProperties.AutomationId="Navigation.Dashboard">
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="D" Width="28" FontWeight="Bold" Foreground="{StaticResource AccentBrush}"/>
@@ -35,7 +35,7 @@
                         </StackPanel>
                     </RadioButton>
                     <RadioButton Style="{StaticResource NavRadioButton}" GroupName="PrimaryNav"
-                                 IsChecked="{Binding IsCrosshairSelected}" Command="{Binding NavigateCommand}" CommandParameter="Crosshair"
+                                 IsChecked="{Binding IsCrosshairSelected, Mode=OneWay}" Command="{Binding NavigateCommand}" CommandParameter="Crosshair"
                                  AutomationProperties.Name="Crosshair navigation" AutomationProperties.AutomationId="Navigation.Crosshair">
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="C" Width="28" FontWeight="Bold" Foreground="{StaticResource AccentBrush}"/>
@@ -43,7 +43,7 @@
                         </StackPanel>
                     </RadioButton>
                     <RadioButton Style="{StaticResource NavRadioButton}" GroupName="PrimaryNav"
-                                 IsChecked="{Binding IsMacrosSelected}" Command="{Binding NavigateCommand}" CommandParameter="Macros"
+                                 IsChecked="{Binding IsMacrosSelected, Mode=OneWay}" Command="{Binding NavigateCommand}" CommandParameter="Macros"
                                  AutomationProperties.Name="Macros navigation" AutomationProperties.AutomationId="Navigation.Macros">
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="M" Width="28" FontWeight="Bold" Foreground="{StaticResource AccentBrush}"/>
@@ -51,7 +51,7 @@
                         </StackPanel>
                     </RadioButton>
                     <RadioButton Style="{StaticResource NavRadioButton}" GroupName="PrimaryNav"
-                                 IsChecked="{Binding IsSystemTweaksSelected}" Command="{Binding NavigateCommand}" CommandParameter="SystemTweaks"
+                                 IsChecked="{Binding IsSystemTweaksSelected, Mode=OneWay}" Command="{Binding NavigateCommand}" CommandParameter="SystemTweaks"
                                  AutomationProperties.Name="System Tweaks navigation" AutomationProperties.AutomationId="Navigation.SystemTweaks">
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="T" Width="28" FontWeight="Bold" Foreground="{StaticResource AccentBrush}"/>

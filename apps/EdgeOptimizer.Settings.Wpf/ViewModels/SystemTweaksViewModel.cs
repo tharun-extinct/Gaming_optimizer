@@ -24,7 +24,8 @@ public sealed class SystemTweaksViewModel : ObservableObject
     public ICommand RestoreDefaultsCommand { get; }
     public ICommand SaveCommand { get; }
 
-    public IEnumerable<ProcessItem> FilteredProcesses => (_profile?.Processes ?? []).Where(FilterProcess);
+    public IEnumerable<ProcessItem> FilteredProcesses =>
+        (_profile?.Processes.AsEnumerable() ?? Enumerable.Empty<ProcessItem>()).Where(FilterProcess);
     public string SelectionSummary => $"{_profile?.Processes.Count(process => process.IsSelected) ?? 0} selected";
 
     public string ProcessFilter

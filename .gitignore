@@ -35,6 +35,10 @@ memory.jsonl
 # Local .NET SDK cache (machine-specific)
 .dotnet/
 *.dotnetUserLevelCache
+**/bin/
+**/obj/
+TestResults/
+artifacts/
 
 
 

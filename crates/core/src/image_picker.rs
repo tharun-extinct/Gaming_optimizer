@@ -72,3 +72,47 @@ pub fn load_crosshair_image(path: &PathBuf) -> Result<(Vec<u32>, u32, u32)> {
 
     Ok((pixels, width, height))
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use image::{ImageBuffer, Rgba};
+    use std::fs;
+    use std::time::{SystemTime, UNIX_EPOCH};
+
+    fn temporary_png(label: &str) -> PathBuf {
+        let suffix = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        std::env::temp_dir().join(format!(
+            "edge-optimizer-{label}-{}-{suffix}.png",
+            std::process::id()
+        ))
+    }
+
+    #[test]
+    fn accepts_a_valid_crosshair_fixture() {
+        // Verifies a disposable one-hundred-pixel PNG passes crosshair validation.
+        let path = temporary_png("valid");
+        let image = ImageBuffer::from_pixel(100, 100, Rgba([0u8, 255, 255, 255]));
+        image.save(&path).unwrap();
+        assert!(validate_crosshair_image(&path).is_ok());
+        let _ = fs::remove_file(path);
+    }
+
+    #[test]
+    fn rejects_wrong_dimensions_and_corrupt_data() {
+        // Verifies invalid dimensions and undecodable data fail without opening a real overlay.
+        let wrong_size = temporary_png("wrong-size");
+        let corrupt = temporary_png("corrupt");
+        ImageBuffer::from_pixel(64, 64, Rgba([0u8, 0, 0, 0]))
+            .save(&wrong_size)
+            .unwrap();
+        fs::write(&corrupt, b"not a png").unwrap();
+        assert!(validate_crosshair_image(&wrong_size).is_err());
+        assert!(validate_crosshair_image(&corrupt).is_err());
+        let _ = fs::remove_file(wrong_size);
+        let _ = fs::remove_file(corrupt);
+    }
+}
