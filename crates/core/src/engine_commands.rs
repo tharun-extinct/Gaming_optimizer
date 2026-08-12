@@ -29,8 +29,7 @@ pub fn dispatch_engine_command(
         }
         RunnerToEngineCommand::ApplyProfile { profile } => {
             let report = operations.kill_processes(&profile.processes_to_kill);
-            let mut result =
-                OperationResult::from_kill_report(request.request_id.clone(), report);
+            let mut result = OperationResult::from_kill_report(request.request_id.clone(), report);
             result.summary = format!("profile={} {}", profile.name, result.summary);
             EngineToRunnerEvent::Result(result)
         }

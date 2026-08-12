@@ -253,10 +253,7 @@ mod tests {
     #[test]
     fn delete_profile_ignores_invalid_indexes() {
         // Verifies deletion removes only a valid selected index and safely ignores out-of-range input.
-        let mut profiles = vec![
-            create_profile("One".into()),
-            create_profile("Two".into()),
-        ];
+        let mut profiles = vec![create_profile("One".into()), create_profile("Two".into())];
         delete_profile(&mut profiles, 9);
         assert_eq!(profiles.len(), 2);
         delete_profile(&mut profiles, 0);

@@ -29,9 +29,8 @@ impl StateStore {
         let project_dirs = ProjectDirs::from("", "", "EdgeOptimizer")
             .ok_or_else(|| anyhow!("failed to determine the EdgeOptimizer data directory"))?;
         let directory = project_dirs.data_local_dir();
-        fs::create_dir_all(directory).with_context(|| {
-            format!("failed to create state directory {}", directory.display())
-        })?;
+        fs::create_dir_all(directory)
+            .with_context(|| format!("failed to create state directory {}", directory.display()))?;
         Self::open(directory.join("state.db"))
     }
 
@@ -236,7 +235,11 @@ impl StateStore {
              VALUES (?1, ?2, COALESCE((SELECT MAX(sort_order) + 1 FROM profiles), 0), ?3)
              ON CONFLICT(name) DO UPDATE SET profile_json = excluded.profile_json,
                 updated_at_unix_ms = excluded.updated_at_unix_ms",
-            params![profile.name, json, crate::orchestration::now_unix_ms() as i64],
+            params![
+                profile.name,
+                json,
+                crate::orchestration::now_unix_ms() as i64
+            ],
         )?;
         transaction.execute(
             "UPDATE app_state SET active_profile_name = ?1 WHERE singleton = 1",
@@ -417,7 +420,9 @@ mod tests {
         // Verifies unsupported future schemas fail explicitly instead of resetting valid state.
         let path = temporary_database();
         let connection = Connection::open(&path).unwrap();
-        connection.execute_batch("PRAGMA user_version = 99;").unwrap();
+        connection
+            .execute_batch("PRAGMA user_version = 99;")
+            .unwrap();
         drop(connection);
         let error = StateStore::open(&path).err().unwrap().to_string();
         assert!(error.contains("newer than supported"));

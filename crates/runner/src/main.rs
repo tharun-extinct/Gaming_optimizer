@@ -102,7 +102,8 @@ fn main() -> Result<()> {
         }
     };
 
-    let mut state_store = StateStore::open_default().context("failed to open Runner state store")?;
+    let mut state_store =
+        StateStore::open_default().context("failed to open Runner state store")?;
     let legacy_config = config::load_config();
     let legacy_profiles = config::get_data_directory()
         .ok()
@@ -113,7 +114,10 @@ fn main() -> Result<()> {
         legacy_config.active_profile.as_deref(),
         legacy_config.overlay_visible,
     )? {
-        tracing::info!("migrated legacy JSON state into {}", state_store.path().display());
+        tracing::info!(
+            "migrated legacy JSON state into {}",
+            state_store.path().display()
+        );
     }
     let startup_state = state_store
         .load_snapshot()

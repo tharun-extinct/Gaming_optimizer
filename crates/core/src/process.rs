@@ -39,7 +39,7 @@ const PROTECTED_PROCESSES: &[&str] = &[
     "lsass",    // Local Security Authority
     "services", // Services Control Manager
     "smss",     // Session Manager
-    "system",       // System process
+    "system",   // System process
     "wininit",  // Windows Init
     "winlogon", // Windows Logon
     "svchost",  // Service Host (critical services)

@@ -310,7 +310,9 @@ mod tests {
     fn macro_names_are_unique_case_insensitively() {
         // Verifies macro names cannot collide through character casing differences.
         let mut config = MacroConfig::default();
-        config.macros.push(MacroDefinition::new("Build".to_string()));
+        config
+            .macros
+            .push(MacroDefinition::new("Build".to_string()));
         assert!(!config.is_name_unique("build", None));
         assert!(config.is_name_unique("Heal", None));
     }
