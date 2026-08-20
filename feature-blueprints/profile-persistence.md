@@ -17,7 +17,7 @@ SQLite schema v2, the v1→v2 migration, legacy import, transactional profile/ac
 
 ## Feature-specific implications
 
-Runner is the only process that opens `state.db`. Settings may retain legacy JSON writes during migration, but Runner's snapshot is authoritative and every UI mutation is forwarded to Runner.
+Runner is the only process that opens `state.db`. The active WPF Settings client currently has no persistence transport; once IPC is implemented, Runner's snapshot is authoritative and every UI mutation is forwarded to Runner.
 
 ## Related blueprints
 
@@ -27,13 +27,13 @@ Runner is the only process that opens `state.db`. Settings may retain legacy JSO
 
 ### Impact checks
 
-- [Settings client](settings-client.md) — both Iced and future WPF must hydrate from Runner.
+- [Settings client](settings-client.md) — WPF must hydrate from Runner.
 
 ## Relevant implementation and tests
 
 - `crates/core/src/state_store.rs` — schema, transactions, migration input, and unit tests.
 - `crates/runner/src/main.rs` — ownership, startup load, and IPC persistence.
-- `crates/core/src/gui/mod.rs` — transitional Iced snapshot hydration.
+- `apps/EdgeOptimizer.Settings.Wpf` — WPF hydration is pending Runner IPC.
 
 ## Acceptance criteria
 

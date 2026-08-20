@@ -624,15 +624,13 @@ fn spawn_settings_window(flag: Option<&str>) -> Result<()> {
         .context("failed to get executable directory")?
         .to_path_buf();
 
-    let settings_exe = exe_dir.join("EdgeOptimizer_Settings.exe");
-    let alt_exe = exe_dir.join("edge_optimizer_settings.exe");
-    let target = if settings_exe.exists() {
-        settings_exe
-    } else if alt_exe.exists() {
-        alt_exe
-    } else {
-        anyhow::bail!("Settings executable not found in {:?}", exe_dir);
-    };
+    let target = exe_dir.join("EdgeOptimizer.Settings.Wpf.exe");
+    if !target.exists() {
+        anyhow::bail!(
+            "WPF Settings executable not found at {:?}. Publish apps/EdgeOptimizer.Settings.Wpf beside the Runner executable.",
+            target
+        );
+    }
 
     let mut cmd = Command::new(&target);
     if let Some(f) = flag {
@@ -644,16 +642,8 @@ fn spawn_settings_window(flag: Option<&str>) -> Result<()> {
 
 fn bring_existing_settings_to_front() -> bool {
     unsafe {
-        let control_center_title: Vec<u16> =
-            "Edge Optimizer - Control Center\0".encode_utf16().collect();
-        let legacy_title: Vec<u16> = "Edge Optimizer - Profile Manager\0"
-            .encode_utf16()
-            .collect();
-
-        let mut hwnd = FindWindowW(None, PCWSTR(control_center_title.as_ptr()));
-        if hwnd == HWND::default() {
-            hwnd = FindWindowW(None, PCWSTR(legacy_title.as_ptr()));
-        }
+        let settings_title: Vec<u16> = "Edge Optimizer\0".encode_utf16().collect();
+        let hwnd = FindWindowW(None, PCWSTR(settings_title.as_ptr()));
 
         if hwnd != HWND::default() {
             if IsIconic(hwnd).as_bool() {
