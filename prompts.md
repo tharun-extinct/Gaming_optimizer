@@ -66,7 +66,7 @@ Use the in-memory copy during optimization.
 
 
 
-# NoxReader Agent Routing
+# Agent Routing
 
 Use progressive disclosure for PDF reader feature and architecture work:
 
@@ -109,4 +109,66 @@ create the skill in this location .github/skills/
 Use fast logic tests, XAML build validation, and a minimal startup/navigation smoke test without pixel comparisons.
 
 Don't perform any process termination, clean up. Just do logic level test (In test files, briefly describe about that test case)
+
+
+
+
+why there isn't full screen mode?
+
+The flyout isn't triggering at all.
+
+
+I can't able to activate the profile, why?
+
+The crosshair isn't activated at all, Even though it's showing - profile [Fortnite .Active] (image-ref)[]
+
+
+what are all the Gaming dependency function we could use in our windows desktop Gaming optimizer (Doc)[https://docs.rs/windows-sys/0.61.2/windows_sys/Win32/Gaming/index.html]
+
+
+
+Not working - profile activation, crosshair, (showing a mock up UI), 
+
+
+
+### Macros
+- can't assign keys to the Macros sequence
+- can't assign shortcut to the Macro
+- Record actions isn't playable
+- 
+- 
+
+
+
+
+msstore publish
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+copilot chat
+
+https://github.com/copilot/share/0a2f120c-4b24-8c17-8003-dc03605f080a
+
+wpf-to-winui3-migration
+
+
+
+why should we have to use WPF instead of WINUI3? 
+
+Are we crosscompiling the Rust and C# via the wpf?
+
+
 

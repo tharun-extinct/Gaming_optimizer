@@ -1,5 +1,5 @@
 ---
-name: maintain-feature-blueprints
+name: blueprints
 description: Create, reorganize, and maintain architecture.md and feature-blueprints/ as a progressively disclosed technical documentation system. Use when an agent must establish a feature-blueprint structure, add or update a feature blueprint, define shared architecture contracts, create manifest-based task routing, split duplicated design notes, align documentation with code and tests, or validate links and dependencies between architecture and feature documentation.
 ---
 
