@@ -49,4 +49,4 @@ None.
 
 ## Remaining gaps
 
-The complete target contract remains to be implemented after persistence stabilizes.
+The complete target contract remains to be implemented before the active WPF Settings client can enable Runner-backed behavior.

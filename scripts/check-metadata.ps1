@@ -7,10 +7,10 @@ param(
 
 # Define the metadata for each binary
 $binaries = @{
-    "edge_optimizer_settings.exe" = @{
-        FileDescription = "EdgeOptimizer.Settings"
+    "EdgeOptimizer.Settings.Wpf.exe" = @{
+        FileDescription = "EdgeOptimizer.Settings.Wpf"
         ProductName = "Edge Optimizer"
-        InternalName = "EdgeOptimizer.Settings"
+        InternalName = "EdgeOptimizer.Settings.Wpf"
     }
     "edge_optimizer_runner.exe" = @{
         FileDescription = "EdgeOptimizer.Runner"

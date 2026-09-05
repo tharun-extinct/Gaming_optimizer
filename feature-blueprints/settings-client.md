@@ -8,7 +8,7 @@ An on-demand, unprivileged WPF client edits profiles and presents Runner state w
 
 **Status:** Partial
 
-The current production-capable UI is Rust/Iced. The WPF application now has a profile-scoped presentation shell, testable view-models, and preview implementations of Dashboard, Crosshair, Macros, and System Tweaks. Its editable state is intentionally memory-only, and orchestration actions remain disabled because generated IPC bindings and the Runner client are not implemented. A Windows CI job builds the client and runs logic plus non-interactive STA smoke tests.
+WPF is the active Settings UI and is launched on demand by Runner from the packaged `EdgeOptimizer.Settings.Wpf.exe`. It has a profile-scoped presentation shell, testable view-models, and preview implementations of Dashboard, Crosshair, Macros, and System Tweaks. Its editable state is intentionally memory-only, and orchestration actions remain disabled because generated IPC bindings and the Runner client are not implemented. A Windows CI job builds the client and runs logic plus non-interactive STA smoke tests.
 
 ## Architecture dependencies
 
@@ -23,7 +23,7 @@ WPF never owns durable state or privileged operations. It requests a snapshot fr
 
 ### Required
 
-- [IPC contracts](ipc-contracts.md) — generated C# types are required before replacing Iced.
+- [IPC contracts](ipc-contracts.md) — generated C# types are required before enabling Runner-backed behavior.
 
 ### Impact checks
 
@@ -35,7 +35,7 @@ WPF never owns durable state or privileged operations. It requests a snapshot fr
 ## Relevant implementation and tests
 
 - `apps/EdgeOptimizer.Settings.Wpf` — future presentation client.
-- `crates/core/src/gui` — transitional Iced client.
+- `crates/runner/src/main.rs` — launches the packaged WPF client.
 
 ## Acceptance criteria
 
@@ -43,6 +43,7 @@ WPF never owns durable state or privileged operations. It requests a snapshot fr
 - [ ] Hydrate profiles and active state from Runner.
 - [ ] Perform profile CRUD through versioned IPC.
 - [ ] Exit fully when the window closes.
+- [x] Runner launches the packaged WPF Settings client.
 - [ ] Include WPF build and contract tests in CI.
 
 ## Remaining gaps

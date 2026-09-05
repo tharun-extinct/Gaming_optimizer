@@ -45,7 +45,7 @@ Quick access without cluttering your screen - perfect for in-game adjustments.
 
 1. **Download the latest release** from the [Releases page](../../releases)
 2. **Extract the ZIP file** to a folder of your choice
-3. **Run** `EdgeOptimizer_Settings.exe`
+3. **Run** `EdgeOptimizer.Settings.Wpf.exe`
 
 That's it! No installation required - just extract and run.
 
@@ -63,16 +63,19 @@ git clone https://github.com/yourusername/EdgeOptimizer.git
 cd EdgeOptimizer
 
 # Build in release mode (optimized for gaming)
+# Build the Rust Runner and workers
 cargo build --release
 
 # Build all components
-cargo build --release -p edge_optimizer_settings
 cargo build --release -p edge_optimizer_runner
 cargo build --release -p edge_optimizer_crosshair
+
+# Publish the WPF settings client beside the Runner executable
+.\scripts\publish-wpf-settings.ps1
 ```
 
 **Executables will be in:**
-- `target\release\EdgeOptimizer_Settings.exe` - Main GUI application
+- `target\release\EdgeOptimizer.Settings.Wpf.exe` - Main GUI application
 - `target\release\EdgeOptimizer_Runner.exe` - System tray manager
 - `target\release\EdgeOptimizer_Crosshair.exe` - Crosshair overlay
 
@@ -80,13 +83,13 @@ cargo build --release -p edge_optimizer_crosshair
 
 ```powershell
 # Run the release build (recommended for gaming)
-.\target\release\EdgeOptimizer_Settings.exe
+.\target\release\EdgeOptimizer.Settings.Wpf.exe
 
 # Or build and run directly
-cargo run -p edge_optimizer_settings --release
+dotnet run --project .\apps\EdgeOptimizer.Settings.Wpf\EdgeOptimizer.Settings.Wpf.csproj --configuration Release
 
 # Development mode (debug build)
-cargo run -p edge_optimizer_settings
+dotnet run --project .\apps\EdgeOptimizer.Settings.Wpf\EdgeOptimizer.Settings.Wpf.csproj
 ```
 
 ---
@@ -95,7 +98,7 @@ cargo run -p edge_optimizer_settings
 
 ### **Step 1: Create Your First Gaming Profile**
 
-1. **Launch Edge Optimizer** by running `EdgeOptimizer_Settings.exe`
+1. **Launch Edge Optimizer** by running `EdgeOptimizer.Settings.Wpf.exe`
 2. **Click "New Profile"** button
 3. **Name your profile** (e.g., "Fortnite", "Valorant", "CS2")
 4. **Select processes to kill:**
@@ -243,7 +246,7 @@ EdgeOptimizer/
 
 ### **Tech Stack**
 - **Language:** Rust 2021 Edition
-- **GUI Framework:** [Iced](https://github.com/iced-rs/iced) - Modern, reactive GUI
+- **GUI Framework:** WPF on .NET 10 - desktop presentation client
 - **System Tray:** [tray-icon](https://crates.io/crates/tray-icon)
 - **Process Management:** [sysinfo](https://crates.io/crates/sysinfo)
 - **Image Handling:** [image](https://crates.io/crates/image)
@@ -264,7 +267,7 @@ cargo clippy
 cargo build
 
 # Run debug version
-cargo run -p edge_optimizer_settings
+dotnet run --project .\apps\EdgeOptimizer.Settings.Wpf\EdgeOptimizer.Settings.Wpf.csproj
 ```
 
 ---
