@@ -14,7 +14,7 @@ Maintain a documentation system in which agents load only the context needed for
 1. Read applicable repository instructions before editing.
 2. Locate existing architecture, feature specifications, agent instructions, implementation notes, and test documentation.
 3. Inspect relevant code and tests before asserting current behavior or completion status.
-4. Reuse established documentation paths when they are coherent. When creating the system from scratch, use `architecture.md` and `feature-blueprints/`.
+4. Reuse established documentation paths when they are coherent. When creating the system from scratch, use `architecture.md` and `blueprints/`.
 5. Preserve unrelated user changes.
 
 Treat verified code and tests as authoritative for current behavior. Treat explicit requirements as authoritative for intended behavior. Label conflicts, uncertainty, and unverified claims instead of guessing.

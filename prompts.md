@@ -170,5 +170,10 @@ why should we have to use WPF instead of WINUI3?
 
 Are we crosscompiling the Rust and C# via the wpf?
 
+why the `EdgeOptimizer_Settings`
+
+
+
+what is that file ending with 'pdb' - Program Debug Database?
 
 
