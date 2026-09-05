@@ -28,7 +28,7 @@ The migration must preserve Runner-facing results while replacing the host with 
 
 ### Impact checks
 
-None.
+- [System Tweaks](system-tweaks.md) — operation classification determines which requests may reach the broker.
 
 ## Relevant implementation and tests
 

@@ -28,6 +28,9 @@ WPF never owns durable state or privileged operations. It requests a snapshot fr
 ### Impact checks
 
 - [Profile persistence](profile-persistence.md) — profile CRUD and startup hydration must remain Runner-owned.
+- [Crosshair overlay](crosshair-overlay.md) — WPF owns preview presentation but not overlay lifecycle or assets.
+- [Macro automation](macro-automation.md) — WPF owns editing presentation but not hooks or input execution.
+- [System Tweaks](system-tweaks.md) — WPF presents choices without performing cleanup, termination, or machine changes.
 
 ## Relevant implementation and tests
 

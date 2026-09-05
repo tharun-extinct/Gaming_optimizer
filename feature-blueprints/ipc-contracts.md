@@ -29,6 +29,9 @@ None.
 
 - [Settings client](settings-client.md) — C# bindings and client transport.
 - [Privileged broker](privileged-broker.md) — authenticated privileged endpoint.
+- [Crosshair overlay](crosshair-overlay.md) — WPF/Runner state and Runner/worker lifecycle messages.
+- [Macro automation](macro-automation.md) — edit, record, playback, cancellation, and worker events.
+- [System Tweaks](system-tweaks.md) — snapshots, activation plans, commands, and structured results.
 
 ## Relevant implementation and tests
 

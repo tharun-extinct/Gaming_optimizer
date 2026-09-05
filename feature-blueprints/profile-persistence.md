@@ -28,6 +28,9 @@ Runner is the only process that opens `state.db`. Settings may retain legacy JSO
 ### Impact checks
 
 - [Settings client](settings-client.md) — both Iced and future WPF must hydrate from Runner.
+- [Crosshair overlay](crosshair-overlay.md) — crosshair configuration and managed asset identity are profile-scoped.
+- [Macro automation](macro-automation.md) — macro definitions are profile-scoped and startup restoration must not execute them.
+- [System Tweaks](system-tweaks.md) — tweak selections are profile-scoped and restoration must not replay side effects.
 
 ## Relevant implementation and tests
 

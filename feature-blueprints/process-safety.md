@@ -28,6 +28,7 @@ None.
 ### Impact checks
 
 - [Privileged broker](privileged-broker.md) — owns final authorization and termination.
+- [System Tweaks](system-tweaks.md) — process selection and activation results must preserve safety decisions.
 
 ## Relevant implementation and tests
 
