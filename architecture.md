@@ -53,4 +53,4 @@ IPC failures degrade the affected capability and never authorize a privileged fa
 
 ## Feature blueprints
 
-See [the feature-blueprint manifest](feature-blueprints/README.md).
+See [the blueprint manifest](blueprints/README.md).

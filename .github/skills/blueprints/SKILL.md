@@ -1,6 +1,6 @@
 ---
 name: blueprints
-description: Create, reorganize, and maintain architecture.md and feature-blueprints/ as a progressively disclosed technical documentation system. Use when an agent must establish a feature-blueprint structure, add or update a feature blueprint, define shared architecture contracts, create manifest-based task routing, split duplicated design notes, align documentation with code and tests, or validate links and dependencies between architecture and feature documentation.
+description: Create, reorganize, and maintain architecture.md and blueprints/ as a progressively disclosed technical documentation system. Use when an agent must establish a feature-blueprint structure, add or update a feature blueprint, define shared architecture contracts, create manifest-based task routing, split duplicated design notes, align documentation with code and tests, or validate links and dependencies between architecture and feature documentation.
 ---
 
 # Maintain Feature Blueprints
@@ -46,7 +46,7 @@ Read [references/templates.md](references/templates.md) when creating a new arch
 
 ### 4. Create or update the blueprint manifest
 
-Use `feature-blueprints/README.md` as the routing manifest unless the repository already has an equivalent manifest.
+Use `blueprints/README.md` as the routing manifest unless the repository already has an equivalent manifest.
 
 For every feature domain, record:
 

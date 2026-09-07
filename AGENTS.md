@@ -8,7 +8,7 @@ architecture migration: the Rust/Iced settings client is current, while the
 WPF client and a hardened privileged broker are being introduced.
 
 Treat current code and tests as the source of truth for implemented behavior.
-Treat `architecture.md` and `feature-blueprints/` as the source of truth for
+Treat `architecture.md` and `blueprints/` as the source of truth for
 intended boundaries and migration status. Never present planned behavior as
 already implemented.
 
@@ -20,7 +20,7 @@ already implemented.
 <context> Use <progressive_disclosure> for feature task and architecture work: </context>
 
 1. Read `architecture.md` for cross-cutting contracts.
-2. Use the router in `feature-blueprints/README.md` to select the primary
+2. Use the router in `blueprints/README.md` to select the primary
    blueprint for the task.
 3. Read only that blueprint, its linked architecture sections, and any impact
    checks relevant to the change.
@@ -50,7 +50,7 @@ Do not load every blueprint for an isolated feature task. Read all of `.github/a
 - `crates/engine_ctl`: engine-service control utility.
 - `apps/EdgeOptimizer.Settings.Wpf`: future .NET 10 WPF settings client.
 - `scripts`: Windows service and scheduled-task administration scripts.
-- `feature-blueprints`: feature-specific design, status, and acceptance criteria.
+- `blueprints`: feature-specific design, status, and acceptance criteria.
 
 ## Architectural constraints
 

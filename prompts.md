@@ -93,7 +93,7 @@ Use the in-memory copy during optimization.
 
 Use progressive disclosure for PDF reader feature and architecture work:
 
-1. Read [`feature-blueprints/README.md`](feature-blueprints/README.md) and classify the task by intent.
+1. Read [`blueprints/README.md`](blueprints/README.md) and classify the task by intent.
 2. Load only the primary blueprint identified by the routing table.
 3. Follow that blueprint's links to the applicable sections of [`.github/architecture.md`](.github/architecture.md).
 4. Inspect the listed implementation and tests before changing behavior or status documentation.
@@ -181,9 +181,14 @@ msstore publish
 
 
 
-copilot chat
+## copilot chat
 
 https://github.com/copilot/share/0a2f120c-4b24-8c17-8003-dc03605f080a
+
+https://github.com/copilot/share/404e421c-4224-8833-b910-5c4a64576858
+
+
+
 
 wpf-to-winui3-migration
 
@@ -200,3 +205,16 @@ why the `EdgeOptimizer_Settings`
 what is that file ending with 'pdb' - Program Debug Database?
 
 
+After building, why there is 'examples' and 'incremental' folder?
+
+
+MSI or exe installer
+
+update
+
+
+
+
+
+## Codex Agents
+ <web-search> use it, to check the compatibility of the stack
