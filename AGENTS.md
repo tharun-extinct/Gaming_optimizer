@@ -4,8 +4,8 @@
 
 Edge Optimizer is a Windows desktop application for gaming profiles, process
 cleanup, crosshair overlays, and input macros. The repository is in an
-architecture migration: the Rust/Iced settings client is current, while the
-WinUI client and a hardened privileged broker are being introduced.
+architecture migration: the WinUI 3 settings client is the active presentation
+client, while Runner IPC and a hardened privileged broker are being introduced.
 
 Treat current code and tests as the source of truth for implemented behavior.
 Treat `architecture.md` and `blueprints/` as the source of truth for
@@ -48,7 +48,8 @@ Do not load every blueprint for an isolated feature task. Read all of `.github/a
 - `crates/macro`: unprivileged macro worker.
 - `crates/engine_service`: transitional elevated Windows engine service.
 - `crates/engine_ctl`: engine-service control utility.
-- `apps/EdgeOptimizer.Settings.WinUI`: future .NET 10 WinUI 3 settings client.
+- `apps/EdgeOptimizer.Settings.Core`: UI-independent .NET 10 settings logic.
+- `apps/EdgeOptimizer.Settings.WinUI`: active .NET 10 WinUI 3 settings client.
 - `scripts`: Windows service and scheduled-task administration scripts.
 - `blueprints`: feature-specific design, status, and acceptance criteria.
 

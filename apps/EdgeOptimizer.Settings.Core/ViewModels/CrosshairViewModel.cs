@@ -27,7 +27,7 @@ public sealed class CrosshairViewModel : ObservableObject
 
     public ICommand MoveCommand { get; }
     public ICommand CenterCommand { get; }
-    public ICommand ReplaceImageCommand { get; }
+    public IAsyncRelayCommand ReplaceImageCommand { get; }
     public ICommand RemoveImageCommand { get; }
     public ICommand HidePreviewCommand { get; }
     public ICommand ResetCommand { get; }

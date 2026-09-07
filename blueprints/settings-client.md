@@ -8,7 +8,7 @@ An on-demand, unprivileged WinUI client edits profiles and presents Runner state
 
 **Status:** Partial
 
-WinUI 3 is the active Settings UI and is launched on demand by Runner from the packaged `EdgeOptimizer.Settings.WinUI.exe`. It has a profile-scoped presentation shell, testable view-models, and preview implementations of Dashboard, Crosshair, Macros, and System Tweaks. Its editable state is intentionally memory-only, and orchestration actions remain disabled because generated IPC bindings and the Runner client are not implemented. A Windows CI job builds the client and runs logic plus non-interactive STA smoke tests.
+WinUI 3 is the active Settings UI and is launched on demand by Runner from the packaged `EdgeOptimizer.Settings.WinUI.exe`. It has a profile-scoped presentation shell, testable view-models, and preview implementations of Dashboard, Crosshair, Macros, and System Tweaks. Its editable state is intentionally memory-only, and orchestration actions remain disabled because generated IPC bindings and the Runner client are not implemented. A Windows CI job tests the UI-independent logic, compiles WinUI XAML, and publishes a self-contained client artifact. Runtime UI smoke automation remains planned.
 
 ## Architecture dependencies
 
@@ -34,7 +34,8 @@ WinUI 3 never owns durable state or privileged operations. It requests a snapsho
 
 ## Relevant implementation and tests
 
-- `apps/EdgeOptimizer.Settings.WinUI` — future presentation client.
+- `apps/EdgeOptimizer.Settings.Core` — UI-independent models, contracts, and view-model logic.
+- `apps/EdgeOptimizer.Settings.WinUI` — active WinUI presentation client.
 - `crates/runner/src/main.rs` — launches the packaged WinUI client.
 
 ## Acceptance criteria

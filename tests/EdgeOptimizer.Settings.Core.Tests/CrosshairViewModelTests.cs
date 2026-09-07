@@ -29,20 +29,20 @@ public sealed class CrosshairViewModelTests
     }
 
     [Fact]
-    public void FilePickerCancellationLeavesImageUnchanged()
+    public async Task FilePickerCancellationLeavesImageUnchangedAsync()
     {
         // Verifies cancelling image selection preserves the current crosshair asset.
         var viewModel = CreateViewModel(new FakeFilePicker(null));
-        viewModel.ReplaceImageCommand.Execute(null);
+        await viewModel.ReplaceImageCommand.ExecuteAsync(null);
         Assert.Equal("dot-crosshair.png", viewModel.ImageName);
     }
 
     [Fact]
-    public void ReplaceRemoveAndResetUpdatePreviewState()
+    public async Task ReplaceRemoveAndResetUpdatePreviewStateAsync()
     {
         // Verifies image replacement, removal, hiding, and reset mutate only the selected profile preview.
         var viewModel = CreateViewModel(new FakeFilePicker(@"C:\fixtures\precision.png"));
-        viewModel.ReplaceImageCommand.Execute(null);
+        await viewModel.ReplaceImageCommand.ExecuteAsync(null);
         Assert.Equal("precision.png", viewModel.ImageName);
 
         viewModel.RemoveImageCommand.Execute(null);
