@@ -5,7 +5,7 @@
 Edge Optimizer is a Windows desktop application for gaming profiles, process
 cleanup, crosshair overlays, and input macros. The repository is in an
 architecture migration: the Rust/Iced settings client is current, while the
-WPF client and a hardened privileged broker are being introduced.
+WinUI client and a hardened privileged broker are being introduced.
 
 Treat current code and tests as the source of truth for implemented behavior.
 Treat `architecture.md` and `blueprints/` as the source of truth for
@@ -48,7 +48,7 @@ Do not load every blueprint for an isolated feature task. Read all of `.github/a
 - `crates/macro`: unprivileged macro worker.
 - `crates/engine_service`: transitional elevated Windows engine service.
 - `crates/engine_ctl`: engine-service control utility.
-- `apps/EdgeOptimizer.Settings.Wpf`: future .NET 10 WPF settings client.
+- `apps/EdgeOptimizer.Settings.WinUI`: future .NET 10 WinUI 3 settings client.
 - `scripts`: Windows service and scheduled-task administration scripts.
 - `blueprints`: feature-specific design, status, and acceptance criteria.
 
@@ -65,7 +65,7 @@ Do not load every blueprint for an isolated feature task. Read all of `.github/a
   authentication evidence.
 - Preserve explicit protocol versioning, bounded frames/messages, validation,
   and compatibility across Rust and C# consumers.
-- Do not make Serde/Bincode the WPF contract; it is transitional. Protobuf over
+- Do not make Serde/Bincode the WinUI 3 contract; it is transitional. Protobuf over
   per-user Windows named pipes is the target contract.
 - Normalize protected process names consistently. Any change that can terminate
   a process must fail safely for ambiguous, critical, or protected targets.
@@ -84,7 +84,7 @@ Do not load every blueprint for an isolated feature task. Read all of `.github/a
   documented.
 - Keep Windows-specific APIs behind `cfg(windows)` or target-specific
   dependencies where practical.
-- In C#, keep nullable reference types enabled and preserve the WPF client's
+- In C#, keep nullable reference types enabled and preserve the WinUI client's
   presentation-only role.
 - Add or update tests with behavior changes. Favor unit tests for pure state,
   normalization, framing, and validation logic; use Windows integration tests
@@ -116,8 +116,8 @@ cargo test --workspace
 # Rust linting
 cargo clippy --workspace --all-targets -- -D warnings
 
-# WPF client (requires the .NET 10 SDK on Windows)
-dotnet build .\apps\EdgeOptimizer.Settings.Wpf\EdgeOptimizer.Settings.Wpf.csproj
+# WinUI client (requires the .NET 10 SDK on Windows)
+dotnet build .\apps\EdgeOptimizer.Settings.WinUI\EdgeOptimizer.Settings.WinUI.csproj
 ```
 
 For a focused Rust change, use `cargo test -p <package>` first. Relevant package

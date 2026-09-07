@@ -8,9 +8,9 @@ A player can configure profile-scoped optimization options, understand their saf
 
 **Status:** Partial
 
-Code inspection on 2026-09-05 confirms Rust profile storage for selected process names and a fan-speed flag, process-name normalization and protected-name tests, Runner-to-Engine command routing with fake-operation tests, and transitional Recycle Bin and browser-cache commands. The WPF preview provides profile-scoped process selection, filtering, fan and cleanup toggles, selection totals, and restore-default behavior with unit tests.
+Code inspection on 2026-09-05 confirms Rust profile storage for selected process names and a fan-speed flag, process-name normalization and protected-name tests, Runner-to-Engine command routing with fake-operation tests, and transitional Recycle Bin and browser-cache commands. The WinUI preview provides profile-scoped process selection, filtering, fan and cleanup toggles, selection totals, and restore-default behavior with unit tests.
 
-The WPF values are memory-only and use fixture process data. Its Recycle Bin and browser-cache toggles do not exist in the Rust profile contract. `fan_speed_max` is stored but is not applied by Engine command dispatch. The transitional EngineSvc performs cleanup in its SYSTEM environment, while the target architecture requires user-specific cleanup in the verified interactive-user context. PID-level safety validation is not implemented.
+The WinUI values are memory-only and use fixture process data. Its Recycle Bin and browser-cache toggles do not exist in the Rust profile contract. `fan_speed_max` is stored but is not applied by Engine command dispatch. The transitional EngineSvc performs cleanup in its SYSTEM environment, while the target architecture requires user-specific cleanup in the verified interactive-user context. PID-level safety validation is not implemented.
 
 ## Architecture dependencies
 
@@ -33,7 +33,7 @@ Profile-scoped selections are durable only through Runner. Restoring a profile r
 
 ### IPC and protocol boundary
 
-Process snapshots, activation previews, save commands, explicit cleanup intents, and structured per-operation results cross the WPF/Runner contract. Runner/broker requests remain bounded, versioned, correlated, and independently authorized.
+Process snapshots, activation previews, save commands, explicit cleanup intents, and structured per-operation results cross the WinUI/Runner contract. Runner/broker requests remain bounded, versioned, correlated, and independently authorized.
 
 ### Privilege and identity
 
@@ -58,7 +58,7 @@ Partial results remain visible by operation. Failure of cleanup, process termina
 
 ### Impact checks
 
-- [Settings client](settings-client.md) — owns WPF presentation, accessibility, navigation, and unavailable-service states.
+- [Settings client](settings-client.md) — owns WinUI presentation, accessibility, navigation, and unavailable-service states.
 
 ## Relevant implementation and tests
 
@@ -68,17 +68,17 @@ Partial results remain visible by operation. Failure of cleanup, process termina
 - `crates/core/src/engine_commands.rs` — injectable Engine command routing and fake-operation tests.
 - `crates/runner/src/main.rs` — activation, cleanup routing, persistence, and Engine state transitions.
 - `crates/engine_service/src/main.rs` — transitional process and cleanup execution.
-- `apps/EdgeOptimizer.Settings.Wpf/ViewModels/SystemTweaksViewModel.cs` — memory-only process and toggle preview logic.
-- `tests/EdgeOptimizer.Settings.Wpf.Tests/SystemTweaksViewModelTests.cs` — filtering, totals, safe defaults, and profile isolation tests.
+- `apps/EdgeOptimizer.Settings.WinUI/ViewModels/SystemTweaksViewModel.cs` — memory-only process and toggle preview logic.
+- `tests/EdgeOptimizer.Settings.Core.Tests/SystemTweaksViewModelTests.cs` — filtering, totals, safe defaults, and profile isolation tests.
 
 ## Acceptance criteria
 
 - [x] Store selected process names and the transitional fan flag per Rust profile.
 - [x] Normalize protected process names across casing, whitespace, and `.exe` forms.
 - [x] Route process and cleanup intents through injectable Engine decision logic for safe hosted tests.
-- [x] Keep WPF process/toggle preview state independent between profiles and restore safe defaults deterministically.
+- [x] Keep WinUI process/toggle preview state independent between profiles and restore safe defaults deterministically.
 - [ ] Replace fixture processes with a Runner-provided snapshot and structured protected/ambiguous selection reasons.
-- [ ] Align WPF and Rust profile contracts for every supported tweak; do not imply persistence for preview-only toggles.
+- [ ] Align WinUI 3 and Rust profile contracts for every supported tweak; do not imply persistence for preview-only toggles.
 - [ ] Define supported fan-policy hardware, authorization, apply, rollback, and unavailable behavior before enabling it.
 - [ ] Classify each operation by execution context and move user cleanup out of the SYSTEM environment.
 - [ ] Validate PID identity and Windows critical/protected state immediately before termination.
@@ -88,4 +88,4 @@ Partial results remain visible by operation. Failure of cleanup, process termina
 
 ## Remaining gaps
 
-Runner-backed WPF state, a unified tweak schema, live process snapshots, executable fan policy, correct user-context cleanup, PID validation, rollback semantics, authenticated broker execution, and Windows integration coverage remain planned. Until those contracts exist, the WPF page must continue to identify unavailable actions as preview-only.
+Runner-backed WinUI 3 state, a unified tweak schema, live process snapshots, executable fan policy, correct user-context cleanup, PID validation, rollback semantics, authenticated broker execution, and Windows integration coverage remain planned. Until those contracts exist, the WinUI 3 page must continue to identify unavailable actions as preview-only.

@@ -17,7 +17,7 @@ SQLite schema v2, the v1→v2 migration, legacy import, transactional profile/ac
 
 ## Feature-specific implications
 
-Runner is the only process that opens `state.db`. The active WPF Settings client currently has no persistence transport; once IPC is implemented, Runner's snapshot is authoritative and every UI mutation is forwarded to Runner.
+Runner is the only process that opens `state.db`. The active WinUI Settings client currently has no persistence transport; once IPC is implemented, Runner's snapshot is authoritative and every UI mutation is forwarded to Runner.
 
 ## Related blueprints
 
@@ -27,7 +27,7 @@ Runner is the only process that opens `state.db`. The active WPF Settings client
 
 ### Impact checks
 
-- [Settings client](settings-client.md) — both Iced and future WPF must hydrate from Runner.
+- [Settings client](settings-client.md) — both Iced and future WinUI must hydrate from Runner.
 - [Crosshair overlay](crosshair-overlay.md) — crosshair configuration and managed asset identity are profile-scoped.
 - [Macro automation](macro-automation.md) — macro definitions are profile-scoped and startup restoration must not execute them.
 - [System Tweaks](system-tweaks.md) — tweak selections are profile-scoped and restoration must not replay side effects.
@@ -36,7 +36,7 @@ Runner is the only process that opens `state.db`. The active WPF Settings client
 
 - `crates/core/src/state_store.rs` — schema, transactions, migration input, and unit tests.
 - `crates/runner/src/main.rs` — ownership, startup load, and IPC persistence.
-- `apps/EdgeOptimizer.Settings.Wpf` — WPF hydration is pending Runner IPC.
+- `apps/EdgeOptimizer.Settings.WinUI` — WinUI hydration is pending Runner IPC.
 
 ## Acceptance criteria
 
@@ -48,7 +48,7 @@ Runner is the only process that opens `state.db`. The active WPF Settings client
 - [x] Back up the previous valid database before state mutations.
 - [ ] Add automated recovery from the previous-valid backup.
 - [ ] Add versioned portable JSON import/export.
-- [ ] Remove legacy direct JSON writes after the WPF client uses Runner commands.
+- [ ] Remove legacy direct JSON writes after the WinUI client uses Runner commands.
 
 ## Remaining gaps
 

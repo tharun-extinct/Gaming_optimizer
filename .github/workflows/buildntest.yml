@@ -66,8 +66,8 @@ jobs:
           path: artifacts/rust
           if-no-files-found: warn
 
-  wpf:
-    name: WPF logic and smoke tests
+  winui:
+    name: WinUI logic, XAML build, and publish
     runs-on: windows-latest
 
     steps:
@@ -87,21 +87,29 @@ jobs:
           restore-keys: |
             nuget-${{ runner.os }}-
 
-      - name: Restore WPF tests
-        run: dotnet restore tests/EdgeOptimizer.Settings.Wpf.Tests/EdgeOptimizer.Settings.Wpf.Tests.csproj
-
-      - name: Build WPF and tests
-        run: dotnet build tests/EdgeOptimizer.Settings.Wpf.Tests/EdgeOptimizer.Settings.Wpf.Tests.csproj --configuration Release --no-restore
-
-      - name: Run WPF logic and smoke tests
+      - name: Restore .NET projects
         run: |
-          New-Item -ItemType Directory -Force -Path artifacts/wpf | Out-Null
-          dotnet test tests/EdgeOptimizer.Settings.Wpf.Tests/EdgeOptimizer.Settings.Wpf.Tests.csproj --configuration Release --no-build --logger "trx;LogFileName=wpf-tests.trx" --results-directory artifacts/wpf --collect "XPlat Code Coverage"
+          dotnet restore tests/EdgeOptimizer.Settings.Core.Tests/EdgeOptimizer.Settings.Core.Tests.csproj
+          dotnet restore apps/EdgeOptimizer.Settings.WinUI/EdgeOptimizer.Settings.WinUI.csproj
 
-      - name: Upload WPF test and coverage artifacts
+      - name: Build logic tests
+        run: dotnet build tests/EdgeOptimizer.Settings.Core.Tests/EdgeOptimizer.Settings.Core.Tests.csproj --configuration Release --no-restore
+
+      - name: Run logic tests
+        run: |
+          New-Item -ItemType Directory -Force -Path artifacts/winui | Out-Null
+          dotnet test tests/EdgeOptimizer.Settings.Core.Tests/EdgeOptimizer.Settings.Core.Tests.csproj --configuration Release --no-build --logger "trx;LogFileName=core-tests.trx" --results-directory artifacts/winui --collect "XPlat Code Coverage"
+
+      - name: Build WinUI XAML
+        run: dotnet build apps/EdgeOptimizer.Settings.WinUI/EdgeOptimizer.Settings.WinUI.csproj --configuration Release --no-restore
+
+      - name: Publish self-contained WinUI client
+        run: dotnet publish apps/EdgeOptimizer.Settings.WinUI/EdgeOptimizer.Settings.WinUI.csproj --configuration Release --no-restore --output artifacts/winui/publish
+
+      - name: Upload WinUI test, coverage, and publish artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: wpf-test-coverage
-          path: artifacts/wpf
+          name: winui-test-coverage-publish
+          path: artifacts/winui
           if-no-files-found: warn

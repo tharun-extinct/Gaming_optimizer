@@ -2,13 +2,13 @@
 
 ## Outcome
 
-An on-demand, unprivileged WPF client edits profiles and presents Runner state while consuming no memory when closed.
+An on-demand, unprivileged WinUI client edits profiles and presents Runner state while consuming no memory when closed.
 
 ## Current verified status
 
 **Status:** Partial
 
-WPF is the active Settings UI and is launched on demand by Runner from the packaged `EdgeOptimizer.Settings.Wpf.exe`. It has a profile-scoped presentation shell, testable view-models, and preview implementations of Dashboard, Crosshair, Macros, and System Tweaks. Its editable state is intentionally memory-only, and orchestration actions remain disabled because generated IPC bindings and the Runner client are not implemented. A Windows CI job builds the client and runs logic plus non-interactive STA smoke tests.
+WinUI 3 is the active Settings UI and is launched on demand by Runner from the packaged `EdgeOptimizer.Settings.WinUI.exe`. It has a profile-scoped presentation shell, testable view-models, and preview implementations of Dashboard, Crosshair, Macros, and System Tweaks. Its editable state is intentionally memory-only, and orchestration actions remain disabled because generated IPC bindings and the Runner client are not implemented. A Windows CI job builds the client and runs logic plus non-interactive STA smoke tests.
 
 ## Architecture dependencies
 
@@ -17,7 +17,7 @@ WPF is the active Settings UI and is launched on demand by Runner from the packa
 
 ## Feature-specific implications
 
-WPF never owns durable state or privileged operations. It requests a snapshot from Runner, submits validated commands, and exits completely when closed.
+WinUI 3 never owns durable state or privileged operations. It requests a snapshot from Runner, submits validated commands, and exits completely when closed.
 
 ## Related blueprints
 
@@ -28,14 +28,14 @@ WPF never owns durable state or privileged operations. It requests a snapshot fr
 ### Impact checks
 
 - [Profile persistence](profile-persistence.md) — profile CRUD and startup hydration must remain Runner-owned.
-- [Crosshair overlay](crosshair-overlay.md) — WPF owns preview presentation but not overlay lifecycle or assets.
-- [Macro automation](macro-automation.md) — WPF owns editing presentation but not hooks or input execution.
-- [System Tweaks](system-tweaks.md) — WPF presents choices without performing cleanup, termination, or machine changes.
+- [Crosshair overlay](crosshair-overlay.md) — WinUI owns preview presentation but not overlay lifecycle or assets.
+- [Macro automation](macro-automation.md) — WinUI owns editing presentation but not hooks or input execution.
+- [System Tweaks](system-tweaks.md) — WinUI 3 presents choices without performing cleanup, termination, or machine changes.
 
 ## Relevant implementation and tests
 
-- `apps/EdgeOptimizer.Settings.Wpf` — future presentation client.
-- `crates/runner/src/main.rs` — launches the packaged WPF client.
+- `apps/EdgeOptimizer.Settings.WinUI` — future presentation client.
+- `crates/runner/src/main.rs` — launches the packaged WinUI client.
 
 ## Acceptance criteria
 
@@ -43,8 +43,8 @@ WPF never owns durable state or privileged operations. It requests a snapshot fr
 - [ ] Hydrate profiles and active state from Runner.
 - [ ] Perform profile CRUD through versioned IPC.
 - [ ] Exit fully when the window closes.
-- [x] Runner launches the packaged WPF Settings client.
-- [ ] Include WPF build and contract tests in CI.
+- [x] Runner launches the packaged WinUI Settings client.
+- [ ] Include WinUI 3 build and contract tests in CI.
 
 ## Remaining gaps
 

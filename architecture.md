@@ -6,7 +6,7 @@ This document defines cross-cutting contracts for the iterative architecture mig
 
 ## Component boundaries
 
-- **Settings UI:** an unprivileged, on-demand WPF presentation client. It is packaged beside Runner as `EdgeOptimizer.Settings.Wpf.exe`. Runner starts it on demand; its Runner IPC integration remains planned.
+- **Settings UI:** an unprivileged, on-demand WinUI presentation client. It is packaged beside Runner as `EdgeOptimizer.Settings.WinUI.exe`. Runner starts it on demand; its Runner IPC integration remains planned.
 - **Runner:** the per-user startup agent, tray owner, orchestration authority, process owner, and sole durable-state owner.
 - **Crosshair and Macro workers:** unprivileged native workers started and stopped by Runner.
 - **Privileged Broker:** a minimal Windows SCM service that performs only allowlisted machine-level operations requested by an authenticated Runner. The current scheduled-task EngineSvc is transitional.
@@ -25,7 +25,7 @@ Crosshair files will be copied into an application-managed assets directory and 
 
 Settings communicates only with Runner; Runner communicates with workers and the Privileged Broker. Every protocol has an explicit version, bounded message size, validation, and generated Rust/C# types. Protobuf over per-user Windows named pipes is the target contract.
 
-The current Rust endpoints still use Serde/Bincode. This is transitional and must not become the WPF contract. Serialized identity or `AuthContext` fields are claims, not authentication evidence.
+The current Rust endpoints still use Serde/Bincode. This is transitional and must not become the WinUI 3 contract. Serialized identity or `AuthContext` fields are claims, not authentication evidence.
 
 ## Privilege and identity
 
@@ -47,7 +47,7 @@ IPC failures degrade the affected capability and never authorize a privileged fa
 
 - State-store unit tests verify schema creation, restart restoration, referential activation, and invalid activation.
 - Process-safety unit tests verify all accepted name forms.
-- IPC contract tests must round-trip generated messages in both Rust and C# before WPF enables Runner-backed behavior.
+- IPC contract tests must round-trip generated messages in both Rust and C# before WinUI 3 enables Runner-backed behavior.
 - Broker integration tests must cover standard-user access, unauthorized clients, malformed frames, and service restart.
 - Windows UI and service behavior require Windows integration tests; documentation alone never marks them implemented.
 

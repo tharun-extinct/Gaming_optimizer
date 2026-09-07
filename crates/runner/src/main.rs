@@ -624,10 +624,10 @@ fn spawn_settings_window(flag: Option<&str>) -> Result<()> {
         .context("failed to get executable directory")?
         .to_path_buf();
 
-    let target = exe_dir.join("EdgeOptimizer.Settings.Wpf.exe");
+    let target = exe_dir.join("EdgeOptimizer.Settings.WinUI.exe");
     if !target.exists() {
         anyhow::bail!(
-            "WPF Settings executable not found at {:?}. Publish apps/EdgeOptimizer.Settings.Wpf beside the Runner executable.",
+            "WinUI Settings executable not found at {:?}. Publish apps/EdgeOptimizer.Settings.WinUI beside the Runner executable.",
             target
         );
     }
